@@ -9,9 +9,9 @@
     "build": "vite build",
     "typecheck": "tsc",
     "test:unit": "node --test \"tests/unit/*.test.ts\"",
-    "test:e2e": "npm run build && playwright test",
+    "test:e2e": "npm run build && playwright test --project=chromium",
     "test": "npm run typecheck && npm run test:unit && npm run test:e2e",
-    "docs:prints": "npm run build && playwright test --grep @docs"
+    "docs:prints": "npm run build && playwright test --project=docs"
   },
   "dependencies": {
     "jszip": "^3.10.2",
