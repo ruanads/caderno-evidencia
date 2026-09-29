@@ -130,15 +130,11 @@ function renderCard(): void {
         ${ed ? `<input type="text" data-edit="titulo" value="${esc(t.titulo)}" aria-label="Título do test case" style="width:100%;font-size:17px;font-weight:600">`
              : `<h2>${esc(t.titulo)}</h2>`}
       </div>
-      <div class="status">
-        <span class="selo chip c-${st || 'todo'}">${ROTULO[st]}</span>
-        <button class="btn ghost" data-acao="editar">${ed ? '✔ Concluir edição' : '✎ Editar'}</button>
-      </div>
+      <span class="selo chip c-${st || 'todo'}">${ROTULO[st]}</span>
     </div>
 
     ${tabelaPassos(t, passoAtivo, ed)}
-    ${ed ? `<div class="status"><button class="btn" data-acao="add-passo">+ Adicionar passo</button>
-      <button class="btn" data-acao="del-teste">Excluir test case</button></div>` : ''}
+    ${ed ? '<div class="status"><button class="btn" data-acao="add-passo">+ Adicionar passo</button></div>' : ''}
 
     ${massa.length ? `<div><span class="lbl">Sugestão de massa</span>
       <table class="massa"><tr><th>Campo</th><th>Valor</th><th>Observação</th></tr>
@@ -165,6 +161,10 @@ function renderCard(): void {
 
     <div class="nav">
       <button class="btn ghost" data-ir="-1" ${i === 0 ? 'disabled' : ''}>← Anterior</button>
+      <div class="nav-meio">
+        <button class="btn ghost" data-acao="editar">${ed ? '✔ Concluir edição' : '✎ Editar'}</button>
+        <button class="btn ghost perigo" data-acao="del-teste">Excluir test case</button>
+      </div>
       <button class="btn" data-ir="1" ${i === cad.testes.length - 1 ? 'disabled' : ''}>Próximo teste →</button>
     </div>
   </section>`;

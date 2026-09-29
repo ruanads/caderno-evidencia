@@ -113,6 +113,18 @@ test('editar: incluir passo e test case entram no CSV exportado', async ({ page 
   expect(csv).toContain(',Test Case,[Etapa 1] Cupom em maiusculas e minusculas,1,Aplicar bemvindo10.,Desconto aplicado.,Loja Exemplo\\Checkout,Pessoa QA,Design\r\n');
 });
 
+test('excluir test case pede confirmacao e apaga os prints dele', async ({ page }) => {
+  await gerarCaderno(page);
+  await colarPrint(page);
+  const excluir = page.getByRole('button', { name: 'Excluir test case' });
+  await excluir.click();
+  await expect(page.locator('.item .n')).toHaveText(['CT01', 'CT02', 'CT03']); // 1o clique so arma
+  await page.getByRole('button', { name: 'Apaga o teste e os prints. Confirmar?' }).click();
+  await expect(page.locator('.item .n')).toHaveText(['CT02', 'CT03']);
+  await expect(page.locator('#card h2')).toHaveText('[Etapa 1] Bloquear cupom expirado');
+  await expect(page.locator('.cam')).toHaveCount(0);
+});
+
 test('baixar evidencias: zip com prints nomeados, resumo e comentario', async ({ page }) => {
   await gerarCaderno(page);
   await colarPrint(page);

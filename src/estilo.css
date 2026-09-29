@@ -145,7 +145,9 @@ input[type=text], select { border: 1px solid var(--line); border-radius: 8px; pa
 .shot .acts { display: flex; gap: 6px; }
 .shot .acts button { flex: 1; border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 5px; font-size: 12.5px; font-weight: 600; }
 .shot .acts button.arm { background: var(--bad); color: var(--panel); border-color: var(--bad); }
-.nav { display: flex; justify-content: space-between; gap: 8px; }
+.nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nav-meio { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.btn.perigo:not(.arm) { color: var(--bad); }
 .empty { color: var(--muted); font-size: 14px; margin: 0; }
 
 /* ---------- modal e aviso ---------- */
