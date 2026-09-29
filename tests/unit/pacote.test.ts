@@ -22,7 +22,7 @@ test('nome do pacote vem da task', () => {
   assert.equal(nomeDoPacote('9001 · Cupom de desconto'), 'evidencias_9001-cupom-de-desconto.zip');
 });
 
-test('zip tem os prints nomeados, o resumo e o comentario', async () => {
+test('zip tem os prints nomeados, o relatorio e o comentario', async () => {
   const r = importarCsvAzure(readFileSync(new URL('../../exemplos/test-cases-exemplo.csv', import.meta.url), 'utf8'));
   if (!r.ok) throw new Error(r.erro);
   r.testes[0].status = 'ok';
@@ -38,10 +38,10 @@ test('zip tem os prints nomeados, o resumo e o comentario', async () => {
 
   const zip = await JSZip.loadAsync(await gerarPacote(caderno, evs));
   const nomes = Object.keys(zip.files).filter((n) => !zip.files[n].dir).sort();
-  assert.deepEqual(nomes, ['comentario.txt', 'evidencias/CT01_P1_01_antes.png', 'evidencias/CT01_P2_01.png', 'resumo.html']);
+  assert.deepEqual(nomes, ['comentario.txt', 'evidencias/CT01_P1_01_antes.png', 'evidencias/CT01_P2_01.png', 'relatorio.html']);
 
-  const resumo = await zip.file('resumo.html')!.async('string');
-  assert.match(resumo, /src="evidencias\/CT01_P1_01_antes.png"/);
-  assert.match(resumo, /CT01 · \[Etapa 1\] Aplicar cupom válido no carrinho/);
+  const relatorio = await zip.file('relatorio.html')!.async('string');
+  assert.match(relatorio, /src="evidencias\/CT01_P1_01_antes.png"/);
+  assert.match(relatorio, /\[Etapa 1\] Aplicar cupom válido no carrinho/);
   assert.match(await zip.file('comentario.txt')!.async('string'), /Aprovado/);
 });

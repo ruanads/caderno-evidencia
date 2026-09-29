@@ -32,6 +32,16 @@ test('falha: lista o que falhou com o passo e a observacao, e reprova', () => {
   assert.match(texto, /Reprovado\. ❌ Bug\(s\) aberto\(s\): #____$/);
 });
 
+test('numero do bug preenchido substitui o #____; o que faltar continua #____', () => {
+  const a = teste('A', 'bad');
+  const b = teste('B', 'bad');
+  assert.match(gerarComentario('T', [a, b]), /Bug\(s\) aberto\(s\): #____$/);
+  a.bug = '#22501';
+  assert.match(gerarComentario('T', [a, b]), /Bug\(s\) aberto\(s\): #22501, #____$/);
+  b.bug = '22502';
+  assert.match(gerarComentario('T', [a, b]), /Bug\(s\) aberto\(s\): #22501, #22502$/);
+});
+
 test('um passo com falha reprova mesmo marcado como Passou', () => {
   assert.match(gerarComentario('T', [teste('A', 'ok', ['bad'])]), /Reprovado/);
 });

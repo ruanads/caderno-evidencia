@@ -170,6 +170,15 @@ input[type=text], select { border: 1px solid var(--line); border-radius: 8px; pa
 .sheet .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .sheet table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .sheet td, .sheet th { padding: 6px; border-bottom: 1px solid var(--line); text-align: left; }
+.campo-bug { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.campo-bug input { width: 140px; }
+.form-exec { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.form-exec label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.form-exec input { color: var(--ink); font-weight: 400; }
+.navegadores { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: flex; gap: 16px; flex-wrap: wrap; }
+.navegadores legend { font-size: 13px; font-weight: 600; color: var(--muted); padding: 0 4px; }
+.sheet textarea#exec-obs { min-height: 64px; font-family: var(--sans); font-size: 14px; }
+.risco { display: grid; grid-template-columns: 1fr 110px auto; gap: 8px; margin: 6px 0; }
 .sheet.anotacao { max-width: min(1200px, 96vw); }
 .ferramentas { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .ferramentas [aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }

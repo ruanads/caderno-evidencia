@@ -9,8 +9,11 @@ import { rascunhoBug } from '../exportar/bug.ts';
 import { gerarComentario } from '../exportar/comentario.ts';
 import { exportarCsvAzure } from '../exportar/csv-azure.ts';
 import { nomeEvidencia, slug } from '../exportar/nomes.ts';
-import { gerarPacote, nomeDoPacote } from '../exportar/pacote.ts';
-import { passoQueFalhou, statusEfetivo, type Evidencia, type StatusTeste, type TestCase } from '../modelo.ts';
+import { gerarPacote, gerarRelatorioUnico, nomeDoPacote, nomeDoRelatorio } from '../exportar/pacote.ts';
+import {
+  EXECUCAO_VAZIA, passoQueFalhou, statusEfetivo,
+  type DadosExecucao, type Evidencia, type NivelRisco, type Risco, type StatusTeste, type TestCase,
+} from '../modelo.ts';
 import * as db from '../armazenamento/db.ts';
 import { iniciarReteste, testesDoReteste, type EscopoReteste } from '../reteste.ts';
 import { abrirAnotacao } from './anotacao.ts';
@@ -32,6 +35,7 @@ export function mostrarCaderno(voltarParaInicio: () => void): void {
         <button class="btn primary" data-acao="comentario">Gerar comentário</button>
         <button class="btn" data-acao="csv">Exportar CSV do Azure</button>
         <button class="btn" data-acao="zip">Baixar evidências (.zip)</button>
+        <button class="btn" data-acao="relatorio">Relatório</button>
         <button class="btn" data-acao="reteste">Iniciar reteste</button>
         <button class="btn ghost" data-acao="novo">Meus cadernos</button>
       </div>
@@ -154,6 +158,9 @@ function renderCard(): void {
       ${falhou ? `<span class="motivo">Falhou no passo ${falhou}</span>` : ''}
       ${st === 'bad' ? '<button class="btn ghost" data-acao="bug">Copiar rascunho de bug</button>' : ''}
     </div>
+    ${st === 'bad' ? `<div class="campo-bug"><label class="lbl" for="bug">Nº do bug</label>
+      <input type="text" id="bug" value="${esc(t.bug ?? '')}" placeholder="Ex.: 22501" autocomplete="off">
+      <span class="note">Entra no comentário e no relatório.</span></div>` : ''}
 
     <div><label class="lbl" for="obs">O que apareceu</label>
       <textarea id="obs" placeholder="Ex.: mensagem 'O cupom expirou'">${esc(t.observacao)}</textarea></div>
@@ -380,6 +387,88 @@ function modalComentario(): void {
   $('#copiar-comentario', modal)!.addEventListener('click', () => copiarTexto(saida.value, saida));
 }
 
+const NAVEGADORES = ['Chrome', 'Edge', 'Firefox', 'Safari'];
+const CAMPOS_EXECUCAO: [keyof Omit<DadosExecucao, 'navegadores' | 'observacoes'>, string, string][] = [
+  ['ambiente', 'Ambiente', 'Ex.: Homologação'],
+  ['versao', 'Versão / build', 'Ex.: 2026.09.3'],
+  ['branch', 'Branch', 'Ex.: features/21767_...'],
+  ['baseDados', 'Base de dados', 'Ex.: DBCorp_Desenv'],
+  ['executor', 'Executado por', 'Seu nome'],
+];
+
+function modalRelatorio(): void {
+  const cad = c();
+  cad.execucao ??= { ...EXECUCAO_VAZIA, navegadores: [] };
+  cad.riscos ??= [];
+  const ex = cad.execucao;
+
+  const linhaRisco = (r: Risco, i: number) => `<div class="risco" data-risco="${i}">
+    <input type="text" data-risco-desc="${i}" value="${esc(r.descricao)}" placeholder="Ex.: Não testado com base de cliente" aria-label="Risco ${i + 1}">
+    <select data-risco-nivel="${i}" aria-label="Nível do risco ${i + 1}">
+      ${(['alto', 'medio', 'baixo'] as NivelRisco[]).map((n) => `<option value="${n}" ${r.nivel === n ? 'selected' : ''}>${{ alto: 'Alto', medio: 'Médio', baixo: 'Baixo' }[n]}</option>`).join('')}
+    </select>
+    <button class="btn ghost" data-risco-del="${i}" aria-label="Remover risco ${i + 1}">✕</button></div>`;
+
+  const modal = abrirModal(`<div class="sheet" role="dialog" aria-label="Relatório de execução">
+    <h3>Relatório de execução</h3>
+    <p class="note">Preencha o que fizer sentido: o que ficar vazio não aparece no relatório.</p>
+    <div class="form-exec">
+      ${CAMPOS_EXECUCAO.map(([k, rotulo, ex2]) => `<label>${rotulo}<input type="text" data-exec="${k}" value="${esc(ex[k])}" placeholder="${ex2}"></label>`).join('')}
+    </div>
+    <fieldset class="navegadores"><legend>Navegadores testados <span class="note">(só para o NG; o PCR é desktop)</span></legend>
+      ${NAVEGADORES.map((b) => `<label><input type="checkbox" data-nav="${b}" ${ex.navegadores.includes(b) ? 'checked' : ''}> ${b}</label>`).join('')}
+    </fieldset>
+    <label class="lbl" for="exec-obs">Observações da execução</label>
+    <textarea id="exec-obs" data-exec-obs placeholder="Ex.: ambiente instável entre 14h e 15h">${esc(ex.observacoes)}</textarea>
+    <div><span class="lbl">Riscos</span><div id="riscos">${cad.riscos.map(linhaRisco).join('')}</div>
+      <button class="btn ghost" id="add-risco">+ Adicionar risco</button></div>
+    <div class="row"><button class="btn" data-fechar>Fechar</button>
+      <button class="btn" id="baixar-relatorio">Baixar relatório (.html)</button>
+      <button class="btn primary" id="ver-relatorio">Ver relatório</button></div>
+  </div>`);
+
+  const renderRiscos = () => ($('#riscos', modal)!.innerHTML = cad.riscos!.map(linhaRisco).join(''));
+
+  modal.addEventListener('input', (e) => {
+    const alvo = e.target as HTMLInputElement;
+    const d = alvo.dataset;
+    if (d.exec) ex[d.exec as (typeof CAMPOS_EXECUCAO)[number][0]] = alvo.value;
+    else if (d.execObs !== undefined) ex.observacoes = alvo.value;
+    else if (d.riscoDesc) cad.riscos![Number(d.riscoDesc)].descricao = alvo.value;
+    else return;
+    salvar();
+  });
+  modal.addEventListener('change', (e) => {
+    const alvo = e.target as HTMLInputElement;
+    if (alvo.dataset.nav) ex.navegadores = NAVEGADORES.filter((b) => $<HTMLInputElement>(`[data-nav="${b}"]`, modal)!.checked);
+    else if (alvo.dataset.riscoNivel) cad.riscos![Number(alvo.dataset.riscoNivel)].nivel = alvo.value as NivelRisco;
+    else return;
+    salvar();
+  });
+  modal.addEventListener('click', async (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
+    if (!b) return;
+    if (b.id === 'add-risco') {
+      cad.riscos!.push({ descricao: '', nivel: 'medio' });
+      renderRiscos();
+      $<HTMLInputElement>(`[data-risco-desc="${cad.riscos!.length - 1}"]`, modal)?.focus();
+    } else if (b.dataset.riscoDel) {
+      cad.riscos!.splice(Number(b.dataset.riscoDel), 1);
+      renderRiscos();
+      salvar();
+    } else if (b.id === 'ver-relatorio') {
+      // Abre a aba ja no clique (senao o navegador bloqueia como pop-up) e so depois preenche.
+      const aba = window.open('', '_blank');
+      const html = await gerarRelatorioUnico(cad, estado.evidencias);
+      if (aba) aba.location.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+      else aviso('O navegador bloqueou a nova aba. Use "Baixar relatório".');
+    } else if (b.id === 'baixar-relatorio') {
+      aviso('Gerando o relatório...');
+      baixar(await gerarRelatorioUnico(cad, estado.evidencias), nomeDoRelatorio(cad.tarefa), 'text/html;charset=utf-8');
+    }
+  });
+}
+
 function modalReteste(): void {
   const cad = c();
   const qtd = (e: EscopoReteste) => testesDoReteste(cad, e).length;
@@ -476,6 +565,7 @@ async function aoClicar(e: MouseEvent): Promise<void> {
     case 'comentario': return modalComentario();
     case 'associar': return modalAssociarMassa();
     case 'reteste': return modalReteste();
+    case 'relatorio': return modalRelatorio();
     case 'csv': {
       baixar(exportarCsvAzure(cad), `test-cases_${slug(cad.tarefa, 60) || 'caderno'}.csv`, 'text/csv;charset=utf-8');
       return aviso('CSV do Azure exportado.');
@@ -507,6 +597,7 @@ function aoDigitar(e: Event): void {
   const d = alvo.dataset;
 
   if (alvo.id === 'obs') { t.observacao = alvo.value; return salvar(); }
+  if (alvo.id === 'bug') { t.bug = alvo.value; return salvar(); }
   if (d.legenda) {
     const ev = estado.evidencias.find((x) => x.id === d.legenda)!;
     ev.legenda = alvo.value;

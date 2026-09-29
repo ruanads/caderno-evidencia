@@ -31,6 +31,7 @@ e que interrompe a execução a cada passo.
 | Procurar a massa de cada teste | A sugestão de massa aparece embaixo dos passos |
 | Destacar o erro num editor de imagem | **Anotar**: retângulo ou seta em vermelho, guardando a original |
 | Refazer o documento no reteste | O caderno fica salvo; **Iniciar reteste** reabre só o que falhou |
+| Montar um resumo para a gestão | **Relatório** de execução: veredito, gráficos, rodadas, ambiente, riscos e bugs |
 
 O programa **não usa IA**. Os test cases já chegam prontos (em CSV) de outra
 ferramenta. Aqui eles são só organizados, executados e exportados.
@@ -49,6 +50,8 @@ ferramenta. Aqui eles são só organizados, executados e exportados.
 | Tela inicial | Teste com falha | Comentário da task |
 | --- | --- | --- |
 | ![Tela inicial](docs/img/1-inicio.png) | ![Teste com falha](docs/img/3-falha.png) | ![Comentário](docs/img/4-comentario.png) |
+
+![Relatório de execução](docs/img/6-relatorio.png)
 
 ### Entradas
 
@@ -75,7 +78,11 @@ Exemplos fictícios em [`exemplos/`](exemplos/).
 - **CSV para o Azure Test Plans**: o mesmo formato da entrada. Sem edição, o arquivo
   sai **idêntico byte a byte** ao importado. Com edição, entram os títulos e passos alterados.
 - **Comentário da task**: aprovação ou reprovação, com os testes que falharam e os não executados.
-- **Pacote `.zip`**: prints nomeados, `resumo.html` e `comentario.txt`.
+- **Relatório de execução** (`.html`, um arquivo só, com as imagens embutidas): veredito,
+  números, gráfico por status e por grupo, evolução das rodadas de reteste, ambiente
+  (versão, base, navegadores), riscos por nível, bugs abertos e corrigidos, e o detalhe de
+  cada teste com os prints. Veja o [relatório de exemplo](docs/exemplo-relatorio.html).
+- **Pacote `.zip`**: prints nomeados, `relatorio.html` e `comentario.txt`.
 - **Rascunho de bug**: para um teste que falhou, texto pronto com passos, esperado e obtido.
 
 O resultado da execução (passou/falhou) fica só no caderno e no comentário. Ele não
@@ -140,5 +147,5 @@ outro computador não vê o caderno. A pasta `dados/` e arquivos `.zip` estão n
 
 ## Próximos passos
 
-- **Fase 3**: integração com a API REST do Azure DevOps (criar test cases, postar o
+- **Fase 4**: integração com a API REST do Azure DevOps (criar test cases, postar o
   comentário, anexar evidências). Depende de autorização para usar um token pessoal (PAT).

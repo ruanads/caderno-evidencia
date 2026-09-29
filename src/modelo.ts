@@ -36,7 +36,22 @@ export type TestCase = {
   azure: DadosAzure;
   linhasOriginais: string[][]; // linhas do CSV importado, para exportar sem perder colunas
   historico?: ResultadoRodada[]; // rodadas anteriores (reteste)
+  bug?: string;          // numero do bug aberto quando o teste falhou (ex.: 22501)
 };
+
+// Dados da execucao para o relatorio. Todos opcionais: o que ficar vazio nao aparece.
+export type DadosExecucao = {
+  ambiente: string;      // dev, homologacao...
+  versao: string;        // versao ou build testado
+  branch: string;
+  baseDados: string;
+  navegadores: string[]; // so faz sentido para o NG (web); o PCR e desktop
+  executor: string;
+  observacoes: string;
+};
+
+export type NivelRisco = 'alto' | 'medio' | 'baixo';
+export type Risco = { descricao: string; nivel: NivelRisco };
 
 export type LinhaMassa = {
   teste: string;         // como veio no arquivo: CT03 ou o Title exato
@@ -64,6 +79,12 @@ export type Caderno = {
   massa: LinhaMassa[];
   formato: FormatoCsv;
   ativo: { testeId: string; passo: number }; // passo comeca em 1
+  execucao?: DadosExecucao;
+  riscos?: Risco[];
+};
+
+export const EXECUCAO_VAZIA: DadosExecucao = {
+  ambiente: '', versao: '', branch: '', baseDados: '', navegadores: [], executor: '', observacoes: '',
 };
 
 export type Evidencia = {

@@ -125,7 +125,33 @@ test('excluir test case pede confirmacao e apaga os prints dele', async ({ page 
   await expect(page.locator('.cam')).toHaveCount(0);
 });
 
-test('baixar evidencias: zip com prints nomeados, resumo e comentario', async ({ page }) => {
+test('relatorio: ambiente, riscos e bug entram no relatorio baixado', async ({ page }) => {
+  await gerarCaderno(page);
+  await page.getByRole('button', { name: 'Próximo teste →' }).click();
+  await page.getByLabel('Passo 1 falhou').click();
+  await page.getByLabel('Nº do bug').fill('22501');
+
+  await page.getByRole('button', { name: 'Relatório', exact: true }).click();
+  await page.getByLabel('Ambiente').fill('Homologação');
+  await page.getByLabel('Chrome').check();
+  await page.getByRole('button', { name: '+ Adicionar risco' }).click();
+  await page.getByLabel('Risco 1', { exact: true }).fill('Sem teste em base de cliente');
+  await page.getByLabel('Nível do risco 1').selectOption('alto');
+
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar relatório (.html)' }).click()]);
+  expect(download.suggestedFilename()).toBe('relatorio_9001-cupom-de-desconto.html');
+  const html = readFileSync(await download.path(), 'utf8');
+  expect(html).toContain('<th>Ambiente</th><td>Homologação</td>');
+  expect(html).toContain('<span class="chip">Chrome</span>');
+  expect(html).toContain('n-alto">Alto</span>Sem teste em base de cliente');
+  expect(html).toContain('<b>#22501</b>');
+
+  await page.getByRole('button', { name: 'Fechar' }).click();
+  await page.getByRole('button', { name: 'Gerar comentário' }).click();
+  expect(await page.locator('#comentario').inputValue()).toMatch(/Bug\(s\) aberto\(s\): #22501$/);
+});
+
+test('baixar evidencias: zip com prints nomeados, relatorio e comentario', async ({ page }) => {
   await gerarCaderno(page);
   await colarPrint(page);
   await page.getByLabel('Passo 1 passou').click();
@@ -134,6 +160,6 @@ test('baixar evidencias: zip com prints nomeados, resumo e comentario', async ({
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar evidências (.zip)' }).click()]);
   expect(download.suggestedFilename()).toBe('evidencias_9001-cupom-de-desconto.zip');
   const zip = await JSZip.loadAsync(readFileSync(await download.path()));
-  expect(Object.keys(zip.files).filter((n) => !zip.files[n].dir).sort()).toEqual(['comentario.txt', 'evidencias/CT01_P1_01.png', 'resumo.html']);
+  expect(Object.keys(zip.files).filter((n) => !zip.files[n].dir).sort()).toEqual(['comentario.txt', 'evidencias/CT01_P1_01.png', 'relatorio.html']);
   expect(await zip.file('comentario.txt')!.async('string')).toContain('Aprovado. ✅');
 });

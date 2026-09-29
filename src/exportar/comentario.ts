@@ -42,9 +42,16 @@ export function gerarComentario(tarefa: string, testes: TestCase[]): string {
 
   linhas.push('📎 Evidências dos testes disponíveis em anexo.', '');
 
-  if (falharam.length) linhas.push('Reprovado. ❌ Bug(s) aberto(s): #____');
+  if (falharam.length) linhas.push(`Reprovado. ❌ Bug(s) aberto(s): ${bugsAbertos(falharam)}`);
   else if (naoExecutados.length) linhas.push('Pendente de execução.');
   else linhas.push('Aprovado. ✅');
 
   return linhas.join('\n');
+}
+
+// Bugs preenchidos nos testes que falharam; o que faltar continua "#____".
+export function bugsAbertos(falharam: TestCase[]): string {
+  const numeros = [...new Set(falharam.map((t) => (t.bug ?? '').trim().replace(/^#/, '')).filter(Boolean))];
+  const faltando = falharam.some((t) => !(t.bug ?? '').trim());
+  return [...numeros.map((n) => `#${n}`), ...(faltando || !numeros.length ? ['#____'] : [])].join(', ');
 }
