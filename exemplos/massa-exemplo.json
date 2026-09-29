@@ -1,0 +1,5 @@
+﻿[
+  { "teste": "CT01", "campo": "Cupom", "valor": "BEMVINDO10", "observacao": "Cupom ativo de 10%" },
+  { "teste": "CT01", "campo": "Produto", "valor": "Caneca branca", "observacao": "Produto com estoque" },
+  { "teste": "CT02", "campo": "Cupom", "valor": "VERAO2020", "observacao": "Cupom expirado em 2020" }
+]

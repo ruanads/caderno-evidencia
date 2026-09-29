@@ -1,0 +1,8 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+
+# Arquivos reais da empresa (CSV de test cases, massa, prints). Nunca versionar.
+dados/
+*.zip

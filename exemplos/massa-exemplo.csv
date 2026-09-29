@@ -1,0 +1,5 @@
+﻿teste,campo,valor,observacao
+CT01,Cupom,BEMVINDO10,Cupom ativo de 10%
+CT02,Cupom,VERAO2020,Cupom expirado em 2020
+[Etapa 2] Manter cupom após recarregar a página,Produto,Camiseta básica,Qualquer produto com estoque
+CT09,Cupom,NAOEXISTE,Linha sem teste correspondente: associar manualmente

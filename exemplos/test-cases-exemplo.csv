@@ -1,0 +1,8 @@
+﻿ID,Work Item Type,Title,Test Step,Step Action,Step Expected,Area Path,Assigned To,State
+,Test Case,[Etapa 1] Aplicar cupom válido no carrinho,1,Acessar o carrinho com um produto adicionado.,O carrinho deve exibir o produto e o subtotal.,Loja Exemplo\Checkout,Pessoa QA,Design
+,,,2,Informar o cupom BEMVINDO10 e aplicar.,O desconto de 10% deve ser aplicado ao subtotal.,,,
+,Test Case,[Etapa 1] Bloquear cupom expirado,1,Acessar o carrinho com um produto adicionado.,O carrinho deve exibir o produto e o subtotal.,Loja Exemplo\Checkout,Pessoa QA,Design
+,,,2,Informar o cupom VERAO2020 e aplicar.,"O sistema deve recusar o cupom, informando que ele expirou.",,,
+,Test Case,[Etapa 2] Manter cupom após recarregar a página,1,Aplicar o cupom BEMVINDO10 no carrinho.,O desconto deve ser aplicado.,Loja Exemplo\Checkout,Pessoa QA,Design
+,,,2,Recarregar a página do carrinho.,O cupom e o desconto devem continuar aplicados.,,,
+,,,3,Finalizar a compra.,"O pedido deve registrar o cupom, o desconto e o total final.",,,
