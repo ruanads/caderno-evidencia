@@ -67,8 +67,15 @@ test('marcar status: passo com falha reprova o teste e entra no comentario', asy
   await expect(page.locator('.motivo')).toHaveText('Falhou no passo 2');
   await expect(page.getByRole('button', { name: '✔ Passou' })).toBeDisabled();
 
+  // Voltar a um teste pela metade abre no primeiro passo sem resultado
+  await page.locator('.item', { hasText: 'CT03' }).click();
+  await page.getByLabel('Passo 1 passou').click();
+  await page.locator('.item', { hasText: 'CT01' }).click();
+  await page.locator('.item', { hasText: 'CT03' }).click();
+  await expect(page.locator('tr.passo.ativo .num')).toHaveText('2');
+  await page.getByLabel('Passo 1 passou').click(); // desfaz, para o CT03 ficar sem resultado
+
   // CT03: nao consegui fazer
-  await page.getByRole('button', { name: 'Próximo teste →' }).click();
   await page.getByRole('button', { name: 'Não consegui fazer' }).click();
 
   await expect(page.locator('#prog')).toContainText('3/3 feitos');

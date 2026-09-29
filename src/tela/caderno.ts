@@ -208,9 +208,11 @@ function urlDe(ev: Evidencia): string {
 
 // ------------------------------------------------------------------ acoes
 
+// Ao abrir um teste, o passo ativo e o primeiro ainda sem resultado: "onde parei".
 function selecionar(testeId: string): void {
   const cad = c();
-  cad.ativo = { testeId, passo: 1 };
+  const t = cad.testes.find((x) => x.id === testeId)!;
+  cad.ativo = { testeId, passo: t.passos.findIndex((p) => !p.status) + 1 || 1 };
   estado.editando = false;
   salvar();
   renderLista();
