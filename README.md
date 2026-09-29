@@ -29,6 +29,8 @@ e que interrompe a execução a cada passo.
 | Escrever o comentário da task | Gerado no padrão do time, pronto para colar |
 | Juntar e subir os prints | Um `.zip` com os prints nomeados e um `resumo.html` |
 | Procurar a massa de cada teste | A sugestão de massa aparece embaixo dos passos |
+| Destacar o erro num editor de imagem | **Anotar**: retângulo ou seta em vermelho, guardando a original |
+| Refazer o documento no reteste | O caderno fica salvo; **Iniciar reteste** reabre só o que falhou |
 
 O programa **não usa IA**. Os test cases já chegam prontos (em CSV) de outra
 ferramenta. Aqui eles são só organizados, executados e exportados.
@@ -39,6 +41,10 @@ ferramenta. Aqui eles são só organizados, executados e exportados.
 2. Cole o **título da task**, escolha o **CSV de test cases** e, se tiver, o **arquivo de massa**.
 3. Para cada teste: clique no passo, tire o print (`Win+Shift+S`), cole (`Ctrl+V`) e marque ✔ ou ✖.
 4. Exporte: **Gerar comentário**, **Exportar CSV do Azure** e **Baixar evidências (.zip)**.
+5. Para retestar depois da correção: abra o caderno em **Meus cadernos** e clique em
+   **Iniciar reteste**. Os testes escolhidos (por padrão, só os que falharam) voltam
+   para "A fazer"; o resultado e os prints da rodada anterior continuam no caderno, e os
+   prints novos saem com a rodada no nome (`CT03_R2_P2_01.png`).
 
 | Tela inicial | Teste com falha | Comentário da task |
 | --- | --- | --- |
@@ -80,7 +86,9 @@ O resultado da execução (passou/falhou) fica só no caderno e no comentário. 
 | Decisão | Motivo |
 | --- | --- |
 | **TypeScript + Vite + `vite-plugin-singlefile`** | Os tipos descrevem o formato dos dados (test case, passo, evidência) e acusam erro antes de rodar. O build junta tudo num único `index.html`, que abre com duplo clique: o navegador bloqueia scripts em módulos separados quando a página vem do disco (`file://`). |
-| **IndexedDB** | Guarda o caderno e as imagens (Blob) no próprio navegador. Um registro por print, para não regravar todas as imagens a cada tecla. |
+| **IndexedDB** | Guarda os cadernos e as imagens (Blob) no próprio navegador. Um registro por print, para não regravar todas as imagens a cada tecla. O banco tem versão e migração: o formato antigo (um caderno só) é convertido sem perder prints, e há um teste que cria um banco antigo de verdade para conferir. |
+| **Anotação guarda a original** | Evidência não deve perder o registro bruto. A imagem anotada vira o print, mas a colada fica guardada e pode ser restaurada. |
+| **Reteste por rodadas no mesmo caderno** | O histórico de cada teste (rodada, resultado, passo que falhou) e os prints antigos ficam juntos, em vez de espalhados em documentos diferentes. |
 | **PapaParse para ler o CSV** | Campos com vírgula vêm entre aspas; `split(",")` quebraria esses campos. |
 | **Exportação a partir das linhas originais** | Cada linha exportada parte da linha importada, e só as colunas controladas são reescritas. O BOM, a quebra de linha (CRLF) e as aspas do original são preservados. |
 | **Ler o arquivo sem `File.text()`** | `File.text()` remove o BOM em silêncio. Um teste de ponta a ponta pegou isso: a exportação deixava de sair idêntica no navegador, embora os testes unitários passassem. |
@@ -106,7 +114,8 @@ npm run docs:prints  # regera as imagens deste README a partir dos exemplos
   nomes dos prints, pacote `.zip` e rascunho de bug.
 - **Ponta a ponta** (Playwright, em `tests/e2e`): abrem o `dist/index.html` por `file://`,
   como no uso real, e cobrem importar CSV, colar print, marcar status, exportar o CSV
-  idêntico, editar e baixar o `.zip`.
+  idêntico, editar, baixar o `.zip`, vários cadernos, reteste, migração do banco antigo
+  e anotação (desenhando com o mouse e conferindo o pixel da imagem salva).
 
 ## Estrutura
 
@@ -115,8 +124,9 @@ src/
   modelo.ts              tipos: Caderno, TestCase, Passo, Evidencia, LinhaMassa
   importar/              CSV do Azure e massa
   exportar/              CSV do Azure, comentário, nomes, pacote .zip, rascunho de bug
-  armazenamento/db.ts    IndexedDB
-  tela/                  tela inicial e caderno
+  reteste.ts             nova rodada: o que volta para "A fazer" e o histórico
+  armazenamento/db.ts    IndexedDB (versões e migração)
+  tela/                  tela inicial, caderno e anotação
 exemplos/                dados fictícios
 dados/                   arquivos reais (ignorado pelo git)
 tests/unit, tests/e2e
@@ -124,13 +134,11 @@ tests/unit, tests/e2e
 
 ## Privacidade
 
-Os dados ficam só no navegador em que o caderno foi aberto. Outro navegador ou
+Os dados ficam só no navegador em que os cadernos foram abertos. Outro navegador ou
 outro computador não vê o caderno. A pasta `dados/` e arquivos `.zip` estão no
 `.gitignore`, para que arquivos reais nunca sejam versionados.
 
 ## Próximos passos
 
-- **Fase 2**: anotação nos prints (seta, retângulo) e vários cadernos salvos, um por task.
 - **Fase 3**: integração com a API REST do Azure DevOps (criar test cases, postar o
   comentário, anexar evidências). Depende de autorização para usar um token pessoal (PAT).
-- Visualização dos passos em formato Gherkin (Dado/Quando/Então), só para leitura.
