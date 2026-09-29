@@ -170,6 +170,10 @@ input[type=text], select { border: 1px solid var(--line); border-radius: 8px; pa
 .sheet .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .sheet table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .sheet td, .sheet th { padding: 6px; border-bottom: 1px solid var(--line); text-align: left; }
+.sheet.anotacao { max-width: min(1200px, 96vw); }
+.ferramentas { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ferramentas [aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.tela-anotacao canvas { display: block; margin: auto; max-width: 100%; max-height: 68vh; cursor: crosshair; touch-action: none; border: 1px solid var(--line); border-radius: 6px; }
 .lightbox img { max-width: 100%; max-height: 80vh; border-radius: 8px; display: block; margin: auto; }
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 8px; font-size: 14px; max-width: calc(100% - 32px); z-index: 30; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

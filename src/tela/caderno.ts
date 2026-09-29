@@ -13,6 +13,7 @@ import { gerarPacote, nomeDoPacote } from '../exportar/pacote.ts';
 import { passoQueFalhou, statusEfetivo, type Evidencia, type StatusTeste, type TestCase } from '../modelo.ts';
 import * as db from '../armazenamento/db.ts';
 import { iniciarReteste, testesDoReteste, type EscopoReteste } from '../reteste.ts';
+import { abrirAnotacao } from './anotacao.ts';
 import { adicionarEvidencias, c, estado, evidenciasDo, removerEvidencia, salvar, testeAtivo, type Filtro } from './estado.ts';
 import { $, abrirModal, aviso, baixar, confirmarNoSegundoClique, copiarTexto, esc, fecharModal } from './util.ts';
 
@@ -213,8 +214,8 @@ function cartaoPrint(ev: Evidencia): string {
     <img src="${urlDe(ev)}" alt="Print ${esc(nome(ev))}" data-zoom="${ev.id}">
     <div class="cap">
       <input type="text" data-legenda="${ev.id}" value="${esc(ev.legenda)}" placeholder="Legenda (ex.: antes, depois, mensagem)" aria-label="Legenda do print">
-      <div class="fname">${esc(nome(ev))}</div>
-      <div class="acts"><button data-copiar="${ev.id}">Copiar</button><button data-apagar="${ev.id}">Apagar</button></div>
+      <div class="fname">${esc(nome(ev))}${ev.original ? ' <span class="chip c-bad">anotado</span>' : ''}</div>
+      <div class="acts"><button data-anotar="${ev.id}">Anotar</button><button data-copiar="${ev.id}">Copiar</button><button data-apagar="${ev.id}">Apagar</button></div>
     </div></figure>`;
 }
 
@@ -223,6 +224,29 @@ const nome = (ev: Evidencia) => nomeEvidencia({ ...ev, tipo: ev.blob.type });
 function urlDe(ev: Evidencia): string {
   if (!urls.has(ev.id)) urls.set(ev.id, URL.createObjectURL(ev.blob));
   return urls.get(ev.id)!;
+}
+
+// A imagem mudou (anotacao): a URL antiga aponta para o Blob velho.
+function esquecerUrl(id: string): void {
+  const url = urls.get(id);
+  if (url) URL.revokeObjectURL(url);
+  urls.delete(id);
+}
+
+function anotar(ev: Evidencia): void {
+  abrirAnotacao(ev, async (novo) => {
+    if (novo) {
+      ev.original ??= ev.blob;
+      ev.blob = novo;
+    } else if (ev.original) {
+      ev.blob = ev.original;
+      delete ev.original;
+    }
+    esquecerUrl(ev.id);
+    await db.gravarEvidencia(ev);
+    renderCard();
+    aviso(novo ? 'Anotação salva. A imagem original continua guardada.' : 'Imagem original restaurada.');
+  });
 }
 
 // ------------------------------------------------------------------ acoes
@@ -433,6 +457,7 @@ async function aoClicar(e: MouseEvent): Promise<void> {
     return;
   }
   if (d.copiar) return copiarImagem(estado.evidencias.find((x) => x.id === d.copiar)!);
+  if (d.anotar) return anotar(estado.evidencias.find((x) => x.id === d.anotar)!);
   if (d.apagar) {
     if (!confirmarNoSegundoClique(b)) return;
     await removerEvidencia(d.apagar);
