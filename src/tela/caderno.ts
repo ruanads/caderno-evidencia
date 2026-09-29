@@ -12,6 +12,7 @@ import { nomeEvidencia, slug } from '../exportar/nomes.ts';
 import { gerarPacote, nomeDoPacote } from '../exportar/pacote.ts';
 import { passoQueFalhou, statusEfetivo, type Evidencia, type StatusTeste, type TestCase } from '../modelo.ts';
 import * as db from '../armazenamento/db.ts';
+import { iniciarReteste, testesDoReteste, type EscopoReteste } from '../reteste.ts';
 import { adicionarEvidencias, c, estado, evidenciasDo, removerEvidencia, salvar, testeAtivo, type Filtro } from './estado.ts';
 import { $, abrirModal, aviso, baixar, confirmarNoSegundoClique, copiarTexto, esc, fecharModal } from './util.ts';
 
@@ -30,7 +31,8 @@ export function mostrarCaderno(voltarParaInicio: () => void): void {
         <button class="btn primary" data-acao="comentario">Gerar comentário</button>
         <button class="btn" data-acao="csv">Exportar CSV do Azure</button>
         <button class="btn" data-acao="zip">Baixar evidências (.zip)</button>
-        <button class="btn ghost" data-acao="novo">Novo caderno</button>
+        <button class="btn" data-acao="reteste">Iniciar reteste</button>
+        <button class="btn ghost" data-acao="novo">Meus cadernos</button>
       </div>
     </header>
     <div class="help">
@@ -76,7 +78,7 @@ function renderTopo(): void {
   const feitos = st.filter(Boolean).length;
   const w = (x: number) => `${((x / cad.testes.length) * 100).toFixed(1)}%`;
 
-  $('#tarefa')!.textContent = `Task ${cad.tarefa}`;
+  $('#tarefa')!.textContent = `Task ${cad.tarefa}${cad.rodada > 1 ? ` · Reteste (rodada ${cad.rodada})` : ''}`;
   $('#prog')!.innerHTML = `<div class="bar" aria-hidden="true"><i style="width:${w(n('ok'))};background:var(--ok)"></i><i style="width:${w(n('bad'))};background:var(--bad)"></i><i style="width:${w(n('skip'))};background:var(--warn)"></i></div>
     <span class="chip c-todo">${feitos}/${cad.testes.length} feitos</span><span class="chip c-ok">${n('ok')} passou</span>
     <span class="chip c-bad">${n('bad')} falhou</span>${n('skip') ? `<span class="chip c-skip">${n('skip')} não executado</span>` : ''}`;
@@ -133,6 +135,10 @@ function renderCard(): void {
       <span class="selo chip c-${st || 'todo'}">${ROTULO[st]}</span>
     </div>
 
+    ${t.historico?.length ? `<div class="historico"><span class="lbl">Rodadas anteriores</span>
+      ${t.historico.map((h) => `<div><span class="chip c-${h.status || 'todo'}">Rodada ${h.rodada}: ${ROTULO[h.status]}${h.passoQueFalhou ? ` no passo ${h.passoQueFalhou}` : ''}</span>
+        ${h.observacao ? `<span class="note">${esc(h.observacao)}</span>` : ''}</div>`).join('')}</div>` : ''}
+
     ${tabelaPassos(t, passoAtivo, ed)}
     ${ed ? '<div class="status"><button class="btn" data-acao="add-passo">+ Adicionar passo</button></div>' : ''}
 
@@ -157,7 +163,7 @@ function renderCard(): void {
       <input type="file" id="arq-print" accept="image/*" multiple hidden>
     </div>
 
-    ${evs.length ? `<div class="shots">${evs.map(cartaoPrint).join('')}</div>` : '<p class="empty">Nenhum print ainda.</p>'}
+    ${evs.length ? printsPorRodada(evs, cad.rodada) : '<p class="empty">Nenhum print ainda.</p>'}
 
     <div class="nav">
       <button class="btn ghost" data-ir="-1" ${i === 0 ? 'disabled' : ''}>← Anterior</button>
@@ -187,6 +193,19 @@ function tabelaPassos(t: TestCase, ativo: number, ed: boolean): string {
         <button data-p="bad" data-passo="${n}" aria-pressed="${p.status === 'bad'}" aria-label="Passo ${n} falhou">✖</button></td></tr>`;
   });
   return `<table class="passos"><thead><tr><th>#</th><th>Ação</th><th>Resultado esperado</th><th>${ed ? '' : 'Passo'}</th></tr></thead><tbody>${linhas.join('')}</tbody></table>`;
+}
+
+// Na primeira rodada, uma grade so. No reteste, a rodada atual primeiro e as
+// anteriores embaixo, cada uma com o seu titulo.
+function printsPorRodada(evs: Evidencia[], rodadaAtual: number): string {
+  const rodadas = [...new Set(evs.map((e) => e.rodada))].sort((a, b) => b - a);
+  if (rodadas.length === 1 && rodadas[0] === rodadaAtual && rodadaAtual === 1) {
+    return `<div class="shots">${evs.map(cartaoPrint).join('')}</div>`;
+  }
+  return rodadas
+    .map((r) => `<div class="rodada"><span class="lbl">Rodada ${r}${r === rodadaAtual ? ' (atual)' : ''}</span>
+      <div class="shots">${evs.filter((e) => e.rodada === r).map(cartaoPrint).join('')}</div></div>`)
+    .join('');
 }
 
 function cartaoPrint(ev: Evidencia): string {
@@ -337,6 +356,35 @@ function modalComentario(): void {
   $('#copiar-comentario', modal)!.addEventListener('click', () => copiarTexto(saida.value, saida));
 }
 
+function modalReteste(): void {
+  const cad = c();
+  const qtd = (e: EscopoReteste) => testesDoReteste(cad, e).length;
+  const opcao = (e: EscopoReteste, texto: string, marcado = false) =>
+    `<label><input type="radio" name="escopo" value="${e}" ${marcado ? 'checked' : ''} ${qtd(e) ? '' : 'disabled'}> ${texto} <strong>(${qtd(e)})</strong></label>`;
+
+  const modal = abrirModal(`<div class="sheet" role="dialog" aria-label="Iniciar reteste">
+    <h3>Iniciar reteste (rodada ${cad.rodada + 1})</h3>
+    <p class="note">Os testes escolhidos voltam para "A fazer". O resultado e os prints desta rodada continuam guardados no caderno.</p>
+    <div class="escopos">
+      ${opcao('falharam', 'Só os que falharam', true)}
+      ${opcao('falharam-e-nao-executados', 'Os que falharam e os não executados')}
+      ${opcao('todos', 'Todos os testes')}
+    </div>
+    <div class="row"><button class="btn" data-fechar>Cancelar</button><button class="btn primary" id="confirmar-reteste">Iniciar reteste</button></div>
+  </div>`);
+
+  $('#confirmar-reteste', modal)!.addEventListener('click', () => {
+    const escopo = ($<HTMLInputElement>('input[name="escopo"]:checked', modal)?.value ?? 'falharam') as EscopoReteste;
+    const quantos = iniciarReteste(cad, escopo);
+    fecharModal();
+    if (!quantos) return aviso('Nenhum teste para retestar nesse grupo.');
+    estado.filtro = 'falta';
+    salvar();
+    renderTudo();
+    aviso(`Rodada ${cad.rodada}: ${quantos} teste(s) para retestar.`);
+  });
+}
+
 function modalAssociarMassa(): void {
   const cad = c();
   const opcoes = (atual: string) =>
@@ -402,6 +450,7 @@ async function aoClicar(e: MouseEvent): Promise<void> {
   switch (d.acao) {
     case 'comentario': return modalComentario();
     case 'associar': return modalAssociarMassa();
+    case 'reteste': return modalReteste();
     case 'csv': {
       baixar(exportarCsvAzure(cad), `test-cases_${slug(cad.tarefa, 60) || 'caderno'}.csv`, 'text/csv;charset=utf-8');
       return aviso('CSV do Azure exportado.');

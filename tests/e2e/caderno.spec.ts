@@ -46,7 +46,7 @@ test('colar print: cai no passo ativo, com nome automatico, e sobrevive ao recar
 
   await page.waitForTimeout(400); // gravacao com atraso
   await page.reload();
-  await page.getByRole('button', { name: 'Continuar de onde parei' }).click();
+  await page.getByRole('button', { name: 'Abrir' }).click();
   await expect(page.locator('.shot .fname')).toHaveText(['CT01_P1_01.png', 'CT01_P2_01_depois-do-cupom.png']);
 });
 

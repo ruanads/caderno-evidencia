@@ -1,11 +1,12 @@
 // Tela inicial: uma coisa por vez. 1) titulo da task, 2) CSV de test cases,
 // 3) massa (opcional). O botao so libera quando 1 e 2 estao certos.
 
+import * as db from '../armazenamento/db.ts';
 import { importarCsvAzureSeguro, type ResultadoImportacao } from '../importar/csv-azure.ts';
 import { importarMassa, type ResultadoMassa } from '../importar/massa.ts';
-import type { Caderno } from '../modelo.ts';
-import { novoCaderno } from './estado.ts';
-import { $, esc, lerArquivo } from './util.ts';
+import { statusEfetivo, type Caderno } from '../modelo.ts';
+import { criarCaderno } from './estado.ts';
+import { $, confirmarNoSegundoClique, esc, lerArquivo } from './util.ts';
 
 type Entrada = {
   tarefa: string;
@@ -13,8 +14,9 @@ type Entrada = {
   massa: { nome: string; texto: string } | null;
 };
 
-export function mostrarInicio(salvo: Caderno | null, abrirCaderno: () => void): void {
+export function mostrarInicio(salvos: Caderno[], abrirCaderno: (c: Caderno) => void, aoCriar: () => void): void {
   const e: Entrada = { tarefa: '', csv: null, massa: null };
+  const cadernos = [...salvos].sort((a, b) => b.atualizadoEm - a.atualizadoEm);
 
   const massaAtual = (): ResultadoMassa | null => {
     if (!e.massa) return null;
@@ -32,9 +34,10 @@ export function mostrarInicio(salvo: Caderno | null, abrirCaderno: () => void): 
         <h1>Caderno de Evidências</h1>
         <p class="note">Importe os test cases, execute colando os prints e exporte tudo para o Azure.</p>
       </div>
-      ${salvo ? `<div class="etapa"><h2>Caderno salvo neste navegador</h2>
-        <p class="resumo-import">Task ${esc(salvo.tarefa)} · ${salvo.testes.length} testes</p>
-        <div><button class="btn primary" id="continuar">Continuar de onde parei</button></div></div>` : ''}
+      ${cadernos.length ? `<section class="etapa"><h2>Meus cadernos</h2>
+        <p class="note">Ficam salvos para o reteste. Abra um para continuar ou retestar.</p>
+        <div class="cadernos">${cadernos.map(cartaoCaderno).join('')}</div></section>
+        <h2 class="subtitulo">Novo caderno</h2>` : ''}
 
       <section class="etapa ${e.tarefa.trim() ? 'ok' : ''}">
         <h2><span class="num">1</span> Título da task</h2>
@@ -53,7 +56,6 @@ export function mostrarInicio(salvo: Caderno | null, abrirCaderno: () => void): 
         ${massa ? resumoMassa(massa) : '<p class="note">CSV ou JSON com as colunas teste, campo, valor e observacao.</p>'}
       </section>
 
-      ${salvo ? '<p class="aviso-local">Gerar um caderno novo apaga o caderno salvo e os prints dele.</p>' : ''}
       <div><button class="btn primary" id="gerar" ${pronto ? '' : 'disabled'}>Gerar caderno</button></div>
       <p class="note">Os dados ficam só neste navegador, neste computador. Nada é enviado para a internet.</p>
     </div>`;
@@ -62,7 +64,17 @@ export function mostrarInicio(salvo: Caderno | null, abrirCaderno: () => void): 
   };
 
   const ligarEventos = () => {
-    $('#continuar')?.addEventListener('click', abrirCaderno);
+    document.querySelectorAll<HTMLButtonElement>('[data-abrir]').forEach((b) =>
+      b.addEventListener('click', () => abrirCaderno(cadernos.find((x) => x.id === b.dataset.abrir)!)),
+    );
+    document.querySelectorAll<HTMLButtonElement>('[data-apagar-caderno]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        if (!confirmarNoSegundoClique(b, 'Apaga o caderno e os prints. Confirmar?')) return;
+        await db.apagarCaderno(b.dataset.apagarCaderno!);
+        cadernos.splice(cadernos.findIndex((x) => x.id === b.dataset.apagarCaderno), 1);
+        render();
+      }),
+    );
     $<HTMLInputElement>('#tarefa')!.addEventListener('input', (ev) => {
       e.tarefa = (ev.target as HTMLInputElement).value;
       const btn = $<HTMLButtonElement>('#gerar')!;
@@ -90,19 +102,29 @@ export function mostrarInicio(salvo: Caderno | null, abrirCaderno: () => void): 
       if (!e.csv?.resultado.ok) return;
       const { testes, formato } = e.csv.resultado;
       const massa = massaAtual();
-      await novoCaderno({
-        tarefa: e.tarefa.trim(),
-        testes,
-        formato,
-        massa: massa?.ok ? massa.linhas : [],
-        ativo: { testeId: testes[0].id, passo: 1 },
-      });
-      abrirCaderno();
+      await criarCaderno({ tarefa: e.tarefa.trim(), testes, formato, massa: massa?.ok ? massa.linhas : [] });
+      aoCriar();
     });
   };
 
   render();
   $<HTMLInputElement>('#tarefa')?.focus();
+}
+
+function cartaoCaderno(c: Caderno): string {
+  const st = c.testes.map(statusEfetivo);
+  const n = (s: string) => st.filter((x) => x === s).length;
+  const feitos = st.filter(Boolean).length;
+  const quando = new Date(c.atualizadoEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  return `<div class="caderno-salvo">
+    <div class="info">
+      <strong>${esc(c.tarefa)}</strong>
+      <span class="note">${feitos}/${c.testes.length} feitos · ${c.rodada > 1 ? `reteste (rodada ${c.rodada}) · ` : ''}atualizado ${quando}</span>
+      <span><span class="chip c-ok">${n('ok')} passou</span> <span class="chip c-bad">${n('bad')} falhou</span>${n('skip') ? ` <span class="chip c-skip">${n('skip')} não executado</span>` : ''}</span>
+    </div>
+    <div class="acoes"><button class="btn primary" data-abrir="${c.id}">Abrir</button>
+      <button class="btn ghost perigo" data-apagar-caderno="${c.id}">Excluir</button></div>
+  </div>`;
 }
 
 function zonaArquivo(tipo: string, aceita: string, nome?: string): string {

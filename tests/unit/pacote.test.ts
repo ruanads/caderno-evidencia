@@ -13,6 +13,11 @@ test('nome do print: teste, passo, sequencia e legenda opcional', () => {
   assert.equal(nomeEvidencia({ testeId: 'CT03', passo: 0, seq: 1, legenda: '', tipo: 'image/jpeg' }), 'CT03_01.jpg');
 });
 
+test('no reteste o nome ganha a rodada; a rodada 1 continua sem', () => {
+  assert.equal(nomeEvidencia({ testeId: 'CT03', passo: 2, seq: 1, legenda: '', tipo: 'image/png', rodada: 1 }), 'CT03_P2_01.png');
+  assert.equal(nomeEvidencia({ testeId: 'CT03', passo: 2, seq: 1, legenda: 'ok', tipo: 'image/png', rodada: 2 }), 'CT03_R2_P2_01_ok.png');
+});
+
 test('nome do pacote vem da task', () => {
   assert.equal(nomeDoPacote('9001 · Cupom de desconto'), 'evidencias_9001-cupom-de-desconto.zip');
 });
@@ -21,11 +26,14 @@ test('zip tem os prints nomeados, o resumo e o comentario', async () => {
   const r = importarCsvAzure(readFileSync(new URL('../../exemplos/test-cases-exemplo.csv', import.meta.url), 'utf8'));
   if (!r.ok) throw new Error(r.erro);
   r.testes[0].status = 'ok';
-  const caderno: Caderno = { tarefa: 'Cupom', testes: r.testes, massa: [], formato: r.formato, ativo: { testeId: 'CT01', passo: 1 } };
+  const caderno: Caderno = {
+    id: 'x', criadoEm: 0, atualizadoEm: 0, rodada: 1,
+    tarefa: 'Cupom', testes: r.testes, massa: [], formato: r.formato, ativo: { testeId: 'CT01', passo: 1 },
+  };
   const png = new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' });
   const evs: Evidencia[] = [
-    { id: 'b', testeId: 'CT01', passo: 2, seq: 1, legenda: '', blob: png, criadoEm: 2 },
-    { id: 'a', testeId: 'CT01', passo: 1, seq: 1, legenda: 'antes', blob: png, criadoEm: 1 },
+    { id: 'b', cadernoId: 'x', rodada: 1, testeId: 'CT01', passo: 2, seq: 1, legenda: '', blob: png, criadoEm: 2 },
+    { id: 'a', cadernoId: 'x', rodada: 1, testeId: 'CT01', passo: 1, seq: 1, legenda: 'antes', blob: png, criadoEm: 1 },
   ];
 
   const zip = await JSZip.loadAsync(await gerarPacote(caderno, evs));

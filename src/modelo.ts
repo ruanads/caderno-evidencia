@@ -18,6 +18,14 @@ export type DadosAzure = {
   state: string;
 };
 
+// Resultado de uma rodada anterior, guardado quando o teste volta para reteste.
+export type ResultadoRodada = {
+  rodada: number;
+  status: StatusTeste;
+  passoQueFalhou: number;
+  observacao: string;
+};
+
 export type TestCase = {
   id: string;            // ID interno curto e estavel: CT01, CT02...
   titulo: string;        // Title do Azure, completo (com o prefixo [Etapa 1], se houver)
@@ -27,6 +35,7 @@ export type TestCase = {
   observacao: string;    // "O que apareceu"
   azure: DadosAzure;
   linhasOriginais: string[][]; // linhas do CSV importado, para exportar sem perder colunas
+  historico?: ResultadoRodada[]; // rodadas anteriores (reteste)
 };
 
 export type LinhaMassa = {
@@ -46,6 +55,10 @@ export type FormatoCsv = {
 };
 
 export type Caderno = {
+  id: string;
+  criadoEm: number;
+  atualizadoEm: number;
+  rodada: number;        // 1 na primeira execucao; +1 a cada reteste
   tarefa: string;
   testes: TestCase[];
   massa: LinhaMassa[];
@@ -55,11 +68,14 @@ export type Caderno = {
 
 export type Evidencia = {
   id: string;
+  cadernoId: string;
+  rodada: number;
   testeId: string;
   passo: number;
   seq: number;
   legenda: string;
-  blob: Blob;
+  blob: Blob;            // imagem atual (com anotacoes, se houver)
+  original?: Blob;       // imagem como foi colada, guardada ao anotar
   criadoEm: number;
 };
 

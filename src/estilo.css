@@ -53,6 +53,11 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .arquivo .nome { color: var(--ok); font-weight: 600; }
 .erro { background: var(--bad-soft); color: var(--bad); border-radius: 8px; padding: 10px 12px; font-size: 14px; white-space: pre-wrap; }
 .resumo-import { font-size: 14px; color: var(--muted); }
+.subtitulo { margin: 8px 0 0; font-size: 17px; }
+.cadernos { display: flex; flex-direction: column; gap: 8px; }
+.caderno-salvo { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.caderno-salvo .info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.caderno-salvo .acoes { display: flex; gap: 8px; }
 
 /* ---------- cabecalho do caderno ---------- */
 header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
@@ -145,6 +150,13 @@ input[type=text], select { border: 1px solid var(--line); border-radius: 8px; pa
 .shot .acts { display: flex; gap: 6px; }
 .shot .acts button { flex: 1; border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 5px; font-size: 12.5px; font-weight: 600; }
 .shot .acts button.arm { background: var(--bad); color: var(--panel); border-color: var(--bad); }
+.historico { display: flex; flex-direction: column; gap: 6px; background: var(--soft); border-radius: 8px; padding: 10px 12px; }
+.historico > div { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.rodada { display: flex; flex-direction: column; gap: 8px; }
+.rodada + .rodada { border-top: 1px dashed var(--line); padding-top: 12px; }
+.escopos { display: flex; flex-direction: column; gap: 8px; }
+.escopos label { display: flex; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+.escopos label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
 .nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .nav-meio { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .btn.perigo:not(.arm) { color: var(--bad); }

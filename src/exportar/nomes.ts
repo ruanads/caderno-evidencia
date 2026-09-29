@@ -1,11 +1,13 @@
 // Nome dos prints: CT03_P2_01.png, ou CT03_P2_01_depois.png com legenda.
-// Teste sem passos: CT03_01.png.
+// Teste sem passos: CT03_01.png. Reteste: CT03_R2_P2_01.png (a rodada 1 nao
+// leva o R, para os nomes da primeira execucao nao mudarem).
 
-export function nomeEvidencia(ev: { testeId: string; passo: number; seq: number; legenda: string; tipo: string }): string {
+export function nomeEvidencia(ev: { testeId: string; passo: number; seq: number; legenda: string; tipo: string; rodada?: number }): string {
   const seq = String(ev.seq).padStart(2, '0');
+  const rodada = ev.rodada && ev.rodada > 1 ? `_R${ev.rodada}` : '';
   const passo = ev.passo > 0 ? `_P${ev.passo}` : '';
   const legenda = slug(ev.legenda);
-  return `${ev.testeId}${passo}_${seq}${legenda ? `_${legenda}` : ''}.${extensao(ev.tipo)}`;
+  return `${ev.testeId}${rodada}${passo}_${seq}${legenda ? `_${legenda}` : ''}.${extensao(ev.tipo)}`;
 }
 
 export function slug(texto: string, limite = 40): string {

@@ -32,7 +32,7 @@ export async function gerarPacote(caderno: Caderno, evidencias: Evidencia[]): Pr
 }
 
 export function ordenar(evidencias: Evidencia[]): Evidencia[] {
-  return [...evidencias].sort((a, b) => a.testeId.localeCompare(b.testeId) || a.passo - b.passo || a.seq - b.seq);
+  return [...evidencias].sort((a, b) => a.testeId.localeCompare(b.testeId) || a.rodada - b.rodada || a.passo - b.passo || a.seq - b.seq);
 }
 
 export function gerarResumo(caderno: Caderno, evidencias: Evidencia[]): string {
@@ -53,7 +53,7 @@ figure{margin:8px 0} figure img{max-width:100%;border:1px solid #dce2e8;border-r
 @media print{section{break-inside:avoid-page}}
 </style></head><body>
 <h1>Caderno de Evidências</h1>
-<p class="muted">Task ${esc(caderno.tarefa)} · ${caderno.testes.length} testes · ${total('ok')} passaram · ${total('bad')} falharam · ${total('skip')} não executados</p>
+<p class="muted">Task ${esc(caderno.tarefa)}${caderno.rodada > 1 ? ` · reteste (rodada ${caderno.rodada})` : ''} · ${caderno.testes.length} testes · ${total('ok')} passaram · ${total('bad')} falharam · ${total('skip')} não executados</p>
 ${testes}
 </body></html>
 `;
@@ -76,6 +76,7 @@ function blocoTeste(t: TestCase, caderno: Caderno, evs: Evidencia[]): string {
 ${t.passos.length ? `<table><tr><th>#</th><th>Ação</th><th>Resultado esperado</th><th></th></tr>${passos}</table>` : ''}
 ${massa.length ? `<p><strong>Massa:</strong> ${massa.map((m) => `${esc(m.campo)} = ${esc(m.valor)}${m.observacao ? ` (${esc(m.observacao)})` : ''}`).join(' · ')}</p>` : ''}
 ${t.observacao.trim() ? `<p><strong>O que apareceu:</strong> ${esc(t.observacao)}</p>` : ''}
+${t.historico?.length ? `<p><strong>Rodadas anteriores:</strong> ${t.historico.map((h) => `rodada ${h.rodada}: ${ROTULO[h.status]}${h.passoQueFalhou ? ` no passo ${h.passoQueFalhou}` : ''}${h.observacao ? ` (${esc(h.observacao)})` : ''}`).join(' · ')}</p>` : ''}
 ${figuras || '<p class="muted">Sem prints.</p>'}
 </section>`;
 }

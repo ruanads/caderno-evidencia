@@ -14,7 +14,7 @@ test('rascunho usa os passos ate a falha, o esperado do passo e o que apareceu',
     azure: { id: '', areaPath: '', assignedTo: '', state: '' }, linhasOriginais: [],
   };
   const png = new Blob([], { type: 'image/png' });
-  const texto = rascunhoBug(t, [{ id: '1', testeId: 'CT02', passo: 2, seq: 1, legenda: 'erro', blob: png, criadoEm: 0 }]);
+  const texto = rascunhoBug(t, [{ id: '1', cadernoId: 'x', rodada: 1, testeId: 'CT02', passo: 2, seq: 1, legenda: 'erro', blob: png, criadoEm: 0 }]);
 
   assert.match(texto, /^Título: \[Bug\] \[Etapa 1\] Bloquear cupom expirado - passo 2/);
   assert.match(texto, /1\. Abrir o carrinho\.\n2\. Aplicar VERAO2020\.\n\n/);
