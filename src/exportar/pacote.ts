@@ -17,7 +17,7 @@ export function nomeDoPacote(tarefa: string): string {
   return `evidencias_${slug(tarefa, 60) || 'caderno'}.zip`;
 }
 
-export async function gerarPacote(caderno: Caderno, evidencias: Evidencia[]): Promise<Uint8Array> {
+export async function gerarPacote(caderno: Caderno, evidencias: Evidencia[]): Promise<Uint8Array<ArrayBuffer>> {
   const zip = new JSZip();
   const pasta = zip.folder('evidencias')!;
 
@@ -27,7 +27,8 @@ export async function gerarPacote(caderno: Caderno, evidencias: Evidencia[]): Pr
   zip.file('resumo.html', gerarResumo(caderno, evidencias));
   zip.file('comentario.txt', gerarComentario(caderno.tarefa, caderno.testes));
 
-  return zip.generateAsync({ type: 'uint8array' });
+  // O JSZip gera sobre um ArrayBuffer comum; o tipo generico dele nao diz isso.
+  return (await zip.generateAsync({ type: 'uint8array' })) as Uint8Array<ArrayBuffer>;
 }
 
 export function ordenar(evidencias: Evidencia[]): Evidencia[] {
