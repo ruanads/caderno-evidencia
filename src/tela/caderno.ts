@@ -11,7 +11,7 @@ import { exportarCsvAzure } from '../exportar/csv-azure.ts';
 import { nomeEvidencia, slug } from '../exportar/nomes.ts';
 import { gerarPacote, gerarRelatorioUnico, nomeDoPacote, nomeDoRelatorio } from '../exportar/pacote.ts';
 import {
-  EXECUCAO_VAZIA, passoQueFalhou, statusEfetivo,
+  EXECUCAO_VAZIA, passoQueFalhou, statusEfetivo, testeEmBranco,
   type DadosExecucao, type Evidencia, type NivelRisco, type Risco, type StatusTeste, type TestCase,
 } from '../modelo.ts';
 import * as db from '../armazenamento/db.ts';
@@ -105,7 +105,7 @@ function renderLista(): void {
     }
     const fotos = evidenciasDo(t.id).length;
     html += `<button class="item" data-teste="${t.id}" aria-current="${t.id === cad.ativo.testeId}">
-      <span class="n">${t.id}</span><span class="t" title="${esc(t.titulo)}">${esc(tituloCurto(t) || t.titulo)}</span>
+      <span class="n">${t.id}</span><span class="t" title="${esc(t.titulo)}">${esc(tituloCurto(t) || t.titulo || '(sem título)')}</span>
       <span class="meta">${fotos ? `<span class="cam">${fotos} 📷</span>` : ''}<span class="dot ${st}" title="${ROTULO[st]}"></span></span></button>`;
   }
   $('#itens')!.innerHTML = html || '<div class="grupo">Nada aqui</div>';
@@ -134,7 +134,7 @@ function renderCard(): void {
     <div class="head">
       <div>
         <div class="eyebrow">${t.id} · ${esc(t.grupo || 'Sem grupo')} · teste ${i + 1} de ${cad.testes.length}</div>
-        ${ed ? `<input type="text" data-edit="titulo" value="${esc(t.titulo)}" aria-label="Título do test case" style="width:100%;font-size:17px;font-weight:600">`
+        ${ed ? `<input type="text" data-edit="titulo" value="${esc(t.titulo)}" aria-label="Título do test case" placeholder="[Etapa 1] O que este teste valida" style="width:100%;font-size:17px;font-weight:600">`
              : `<h2>${esc(t.titulo)}</h2>`}
       </div>
       <span class="selo chip c-${st || 'todo'}">${ROTULO[st]}</span>
@@ -307,16 +307,7 @@ function novoTeste(): void {
   const maior = Math.max(0, ...cad.testes.map((t) => Number(t.id.replace(/\D/g, '')) || 0));
   const largura = Math.max(2, (cad.testes[0]?.id.length ?? 4) - 2);
   const base = testeAtivo();
-  const t: TestCase = {
-    id: `CT${String(maior + 1).padStart(largura, '0')}`,
-    titulo: base.grupo ? `[${base.grupo}] Novo test case` : 'Novo test case',
-    grupo: base.grupo,
-    passos: [{ acao: '', esperado: '', status: '' }],
-    status: '',
-    observacao: '',
-    azure: { id: '', areaPath: base.azure.areaPath, assignedTo: base.azure.assignedTo, state: 'Design' },
-    linhasOriginais: [],
-  };
+  const t = testeEmBranco(`CT${String(maior + 1).padStart(largura, '0')}`, base);
   cad.testes.splice(cad.testes.indexOf(base) + 1, 0, t);
   cad.ativo = { testeId: t.id, passo: 1 };
   estado.editando = true;

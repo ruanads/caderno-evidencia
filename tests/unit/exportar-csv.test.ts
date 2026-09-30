@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { importarCsvAzure } from '../../src/importar/csv-azure.ts';
 import { exportarCsvAzure } from '../../src/exportar/csv-azure.ts';
+import { FORMATO_PADRAO, testeEmBranco } from '../../src/modelo.ts';
 
 const exemplo = readFileSync(new URL('../../exemplos/test-cases-exemplo.csv', import.meta.url), 'utf8');
 const ida = (texto: string) => {
@@ -49,6 +50,29 @@ test('resultado da execucao nao entra no CSV', () => {
   c.testes[0].passos[0].status = 'bad';
   c.testes[0].observacao = 'falhou';
   assert.equal(exportarCsvAzure(c), exemplo);
+});
+
+test('caderno criado sem CSV exporta no formato do Azure e reimporta igual', () => {
+  const t1 = testeEmBranco('CT01');
+  t1.titulo = '[Etapa 1] Cupom válido';
+  t1.grupo = 'Etapa 1';
+  t1.passos = [{ acao: 'Aplicar o cupom.', esperado: 'Desconto de 10%, sem arredondar.', status: '' }];
+  const t2 = testeEmBranco('CT02', t1);
+  t2.titulo += 'Cupom expirado';
+  t2.passos = [{ acao: 'Aplicar VERAO2020.', esperado: 'Cupom recusado.', status: '' }, { acao: 'Finalizar.', esperado: 'Sem desconto.', status: '' }];
+
+  const csv = exportarCsvAzure({ testes: [t1, t2], formato: FORMATO_PADRAO });
+  assert.equal(csv, '﻿' + [
+    'ID,Work Item Type,Title,Test Step,Step Action,Step Expected,Area Path,Assigned To,State',
+    ',Test Case,[Etapa 1] Cupom válido,1,Aplicar o cupom.,"Desconto de 10%, sem arredondar.",,,Design',
+    ',Test Case,[Etapa 1] Cupom expirado,1,Aplicar VERAO2020.,Cupom recusado.,,,Design',
+    ',,,2,Finalizar.,Sem desconto.,,,',
+    '',
+  ].join('\r\n'));
+
+  const volta = ida(csv);
+  assert.deepEqual(volta.testes.map((t) => [t.titulo, t.passos.length]), [['[Etapa 1] Cupom válido', 1], ['[Etapa 1] Cupom expirado', 2]]);
+  assert.equal(exportarCsvAzure(volta), csv);
 });
 
 function existe(relativo: string): boolean {

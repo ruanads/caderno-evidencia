@@ -40,6 +40,8 @@ ferramenta. Aqui eles são só organizados, executados e exportados.
 
 1. Abra `dist/index.html` no navegador (duplo clique).
 2. Cole o **título da task**, escolha o **CSV de test cases** e, se tiver, o **arquivo de massa**.
+   Sem CSV? Clique em **"Não tenho CSV: criar os test cases aqui"**: o caderno começa com
+   um test case em branco, e o CSV exportado sai no formato de importação do Azure do mesmo jeito.
 3. Para cada teste: clique no passo, tire o print (`Win+Shift+S`), cole (`Ctrl+V`) e marque ✔ ou ✖.
 4. Exporte: **Gerar comentário**, **Exportar CSV do Azure** e **Baixar evidências (.zip)**.
 5. Para retestar depois da correção: abra o caderno em **Meus cadernos** e clique em

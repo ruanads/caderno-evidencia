@@ -1,21 +1,28 @@
-// Tela inicial: uma coisa por vez. 1) titulo da task, 2) CSV de test cases,
-// 3) massa (opcional). O botao so libera quando 1 e 2 estao certos.
+// Tela inicial: uma coisa por vez. 1) titulo da task, 2) CSV de test cases
+// (ou criar os test cases na tela), 3) massa (opcional). O botao so libera
+// quando 1 e 2 estao certos.
 
 import * as db from '../armazenamento/db.ts';
 import { importarCsvAzureSeguro, type ResultadoImportacao } from '../importar/csv-azure.ts';
 import { importarMassa, type ResultadoMassa } from '../importar/massa.ts';
-import { statusEfetivo, type Caderno } from '../modelo.ts';
-import { criarCaderno } from './estado.ts';
+import { FORMATO_PADRAO, statusEfetivo, testeEmBranco, type Caderno } from '../modelo.ts';
+import { criarCaderno, estado } from './estado.ts';
 import { $, confirmarNoSegundoClique, esc, lerArquivo } from './util.ts';
 
 type Entrada = {
   tarefa: string;
   csv: { nome: string; resultado: ResultadoImportacao } | null;
+  semCsv: boolean;       // test cases criados na tela, sem arquivo
   massa: { nome: string; texto: string } | null;
 };
 
 export function mostrarInicio(salvos: Caderno[], abrirCaderno: (c: Caderno) => void, aoCriar: () => void): void {
-  const e: Entrada = { tarefa: '', csv: null, massa: null };
+  const e: Entrada = { tarefa: '', csv: null, semCsv: false, massa: null };
+
+  const podeGerar = () => {
+    const massa = massaAtual();
+    return e.tarefa.trim().length > 0 && (e.semCsv || (e.csv?.resultado.ok ?? false)) && (!massa || massa.ok);
+  };
   const cadernos = [...salvos].sort((a, b) => b.atualizadoEm - a.atualizadoEm);
 
   const massaAtual = (): ResultadoMassa | null => {
@@ -25,9 +32,9 @@ export function mostrarInicio(salvos: Caderno[], abrirCaderno: (c: Caderno) => v
   };
 
   const render = () => {
-    const csvOk = e.csv?.resultado.ok ?? false;
+    const csvOk = e.semCsv || (e.csv?.resultado.ok ?? false);
     const massa = massaAtual();
-    const pronto = e.tarefa.trim().length > 0 && csvOk && (!massa || massa.ok);
+    const pronto = podeGerar();
 
     $('#app')!.innerHTML = `<div class="inicio">
       <div>
@@ -45,9 +52,13 @@ export function mostrarInicio(salvos: Caderno[], abrirCaderno: (c: Caderno) => v
       </section>
 
       <section class="etapa ${csvOk ? 'ok' : ''}">
-        <h2><span class="num">2</span> CSV de test cases</h2>
-        ${zonaArquivo('csv', '.csv,text/csv', e.csv?.nome)}
-        ${e.csv ? resumoCsv(e.csv.resultado) : '<p class="note">O CSV de importação do Azure Test Plans (o que a IA da empresa gera).</p>'}
+        <h2><span class="num">2</span> Test cases</h2>
+        ${e.semCsv
+          ? `<p class="resumo-import">✔ Sem CSV: o caderno começa com um test case em branco para você preencher, e os outros você inclui com "+ Novo test case".</p>
+             <div><button class="btn ghost" id="usar-csv">Usar um CSV</button></div>`
+          : `${zonaArquivo('csv', '.csv,text/csv', e.csv?.nome)}
+             ${e.csv ? resumoCsv(e.csv.resultado) : '<p class="note">O CSV de importação do Azure Test Plans (o que a IA da empresa gera).</p>'}
+             <div><button class="btn ghost" id="sem-csv">Não tenho CSV: criar os test cases aqui</button></div>`}
       </section>
 
       <section class="etapa ${massa?.ok ? 'ok' : ''}">
@@ -77,14 +88,15 @@ export function mostrarInicio(salvos: Caderno[], abrirCaderno: (c: Caderno) => v
     );
     $<HTMLInputElement>('#tarefa')!.addEventListener('input', (ev) => {
       e.tarefa = (ev.target as HTMLInputElement).value;
-      const btn = $<HTMLButtonElement>('#gerar')!;
-      const massa = massaAtual();
-      btn.disabled = !(e.tarefa.trim() && e.csv?.resultado.ok && (!massa || massa.ok));
+      $<HTMLButtonElement>('#gerar')!.disabled = !podeGerar();
       $('#tarefa')!.closest('.etapa')!.classList.toggle('ok', Boolean(e.tarefa.trim()));
     });
+    $('#sem-csv')?.addEventListener('click', () => { e.semCsv = true; render(); });
+    $('#usar-csv')?.addEventListener('click', () => { e.semCsv = false; render(); });
 
     for (const tipo of ['csv', 'massa'] as const) {
-      const zona = $(`#zona-${tipo}`)!;
+      const zona = $(`#zona-${tipo}`);
+      if (!zona) continue; // sem CSV, a zona do arquivo nao aparece
       const receber = async (arquivo: File | undefined) => {
         if (!arquivo) return;
         const texto = await lerArquivo(arquivo);
@@ -99,10 +111,13 @@ export function mostrarInicio(salvos: Caderno[], abrirCaderno: (c: Caderno) => v
     }
 
     $('#gerar')!.addEventListener('click', async () => {
-      if (!e.csv?.resultado.ok) return;
-      const { testes, formato } = e.csv.resultado;
+      if (!podeGerar()) return;
       const massa = massaAtual();
-      await criarCaderno({ tarefa: e.tarefa.trim(), testes, formato, massa: massa?.ok ? massa.linhas : [] });
+      const origem = e.semCsv || !e.csv?.resultado.ok
+        ? { testes: [testeEmBranco('CT01')], formato: FORMATO_PADRAO }
+        : { testes: e.csv.resultado.testes, formato: e.csv.resultado.formato };
+      await criarCaderno({ tarefa: e.tarefa.trim(), ...origem, massa: massa?.ok ? massa.linhas : [] });
+      estado.editando = e.semCsv; // sem CSV, ja abre editando o primeiro test case
       aoCriar();
     });
   };

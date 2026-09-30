@@ -104,6 +104,25 @@ export const CABECALHO_AZURE = [
   'ID', 'Work Item Type', 'Title', 'Test Step', 'Step Action', 'Step Expected', 'Area Path', 'Assigned To', 'State',
 ] as const;
 
+// Formato do CSV quando o caderno nasce sem arquivo: o mesmo que o Azure gera
+// (BOM, CRLF, quebra no final), para a exportacao ser aceita na importacao.
+export const FORMATO_PADRAO: FormatoCsv = { cabecalho: [...CABECALHO_AZURE], bom: true, quebra: '\r\n', terminaComQuebra: true };
+
+// Test case novo, criado na tela. Area Path e Assigned To vem do teste de
+// referencia (quando ha), para o CSV exportado cair no mesmo lugar do Azure.
+export function testeEmBranco(id: string, referencia?: TestCase): TestCase {
+  return {
+    id,
+    titulo: referencia?.grupo ? `[${referencia.grupo}] ` : '',
+    grupo: referencia?.grupo ?? '',
+    passos: [{ acao: '', esperado: '', status: '' }],
+    status: '',
+    observacao: '',
+    azure: { id: '', areaPath: referencia?.azure.areaPath ?? '', assignedTo: referencia?.azure.assignedTo ?? '', state: 'Design' },
+    linhasOriginais: [],
+  };
+}
+
 // Um passo com falha derruba o teste inteiro, mesmo que alguem marque "Passou".
 export function statusEfetivo(t: TestCase): StatusTeste {
   return t.passos.some((p) => p.status === 'bad') ? 'bad' : t.status;

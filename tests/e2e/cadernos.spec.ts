@@ -19,6 +19,39 @@ test('varios cadernos: criar outro nao apaga o primeiro', async ({ page }) => {
   await expect(page.locator('.shot .fname')).toHaveText(['CT01_P1_01.png']);
 });
 
+test('criar caderno sem CSV: test cases feitos na tela e exportados para o Azure', async ({ page }) => {
+  await page.goto(pagina);
+  await page.getByPlaceholder('Cole aqui o título da task do Azure').fill('9003 - Sem CSV');
+  await expect(page.getByRole('button', { name: 'Gerar caderno' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Não tenho CSV: criar os test cases aqui' }).click();
+  await page.getByRole('button', { name: 'Gerar caderno' }).click();
+
+  // Ja abre editando o CT01 em branco
+  await expect(page.locator('.item .t')).toHaveText('(sem título)');
+  await page.getByLabel('Título do test case').fill('[Etapa 1] Cupom válido');
+  await page.getByLabel('Ação do passo 1').fill('Aplicar o cupom.');
+  await page.getByLabel('Resultado esperado do passo 1').fill('Desconto aplicado.');
+
+  await page.getByRole('button', { name: '+ Novo test case' }).click();
+  await expect(page.getByLabel('Título do test case')).toHaveValue('[Etapa 1] '); // herda o grupo
+  await page.getByLabel('Título do test case').fill('[Etapa 1] Cupom expirado');
+  await page.getByLabel('Ação do passo 1').fill('Aplicar VERAO2020.');
+  await page.getByLabel('Resultado esperado do passo 1').fill('Cupom recusado.');
+  await page.getByRole('button', { name: '✔ Concluir edição' }).click();
+
+  await expect(page.locator('.item .n')).toHaveText(['CT01', 'CT02']);
+  await page.getByLabel('Passo 1 passou').click(); // executa como qualquer caderno
+  await expect(page.locator('#card .selo')).toHaveText('Passou');
+
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar CSV do Azure' }).click()]);
+  expect(readFileSync(await download.path(), 'utf8')).toBe('﻿' + [
+    'ID,Work Item Type,Title,Test Step,Step Action,Step Expected,Area Path,Assigned To,State',
+    ',Test Case,[Etapa 1] Cupom válido,1,Aplicar o cupom.,Desconto aplicado.,,,Design',
+    ',Test Case,[Etapa 1] Cupom expirado,1,Aplicar VERAO2020.,Cupom recusado.,,,Design',
+    '',
+  ].join('\r\n'));
+});
+
 test('excluir caderno da lista pede confirmacao', async ({ page }) => {
   await gerarCaderno(page);
   await page.getByRole('button', { name: 'Meus cadernos' }).click();
