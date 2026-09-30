@@ -43,13 +43,51 @@ test('criar caderno sem CSV: test cases feitos na tela e exportados para o Azure
   await page.getByLabel('Passo 1 passou').click(); // executa como qualquer caderno
   await expect(page.locator('#card .selo')).toHaveText('Passou');
 
-  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar CSV do Azure' }).click()]);
+  // Sem CSV de origem, Area Path e Assigned To nascem vazios: exportar exige preencher
+  await page.getByRole('button', { name: 'Exportar CSV do Azure' }).click();
+  await page.getByRole('button', { name: 'Baixar CSV' }).click();
+  await expect(page.getByRole('alert')).toHaveText('Preencha o Area Path e o Assigned To.');
+  await page.getByLabel('Area Path').fill('Loja Exemplo\\Checkout');
+  await page.getByLabel('Assigned To').fill('Pessoa QA');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar CSV' }).click()]);
   expect(readFileSync(await download.path(), 'utf8')).toBe('﻿' + [
     'ID,Work Item Type,Title,Test Step,Step Action,Step Expected,Area Path,Assigned To,State',
-    ',Test Case,[Etapa 1] Cupom válido,1,Aplicar o cupom.,Desconto aplicado.,,,Design',
-    ',Test Case,[Etapa 1] Cupom expirado,1,Aplicar VERAO2020.,Cupom recusado.,,,Design',
+    ',Test Case,[Etapa 1] Cupom válido,1,Aplicar o cupom.,Desconto aplicado.,Loja Exemplo\\Checkout,Pessoa QA,Design',
+    ',Test Case,[Etapa 1] Cupom expirado,1,Aplicar VERAO2020.,Cupom recusado.,Loja Exemplo\\Checkout,Pessoa QA,Design',
     '',
   ].join('\r\n'));
+
+  // Na proxima exportacao os campos ja vem preenchidos
+  await page.getByRole('button', { name: 'Exportar CSV do Azure' }).click();
+  await expect(page.getByLabel('Area Path')).toHaveValue('Loja Exemplo\\Checkout');
+});
+
+test('importar CSV num caderno criado sem CSV substitui o teste em branco; depois acrescenta', async ({ page }) => {
+  await page.goto(pagina);
+  await page.getByPlaceholder('Cole aqui o título da task do Azure').fill('9004 - Importar depois');
+  await page.getByRole('button', { name: 'Não tenho CSV: criar os test cases aqui' }).click();
+  await page.getByRole('button', { name: 'Gerar caderno' }).click();
+
+  await page.locator('#arq-importar').setInputFiles(exemplo('test-cases-exemplo.csv'));
+  await expect(page.locator('.item .n')).toHaveText(['CT01', 'CT02', 'CT03']);
+  await expect(page.locator('#card h2')).toHaveText('[Etapa 1] Aplicar cupom válido no carrinho');
+
+  // Com o CSV no lugar do teste em branco, a exportacao volta a ser identica ao arquivo
+  await page.getByRole('button', { name: 'Exportar CSV do Azure' }).click();
+  await expect(page.getByLabel('Area Path')).toHaveValue('Loja Exemplo\\Checkout');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar CSV' }).click()]);
+  expect(readFileSync(await download.path())).toEqual(readFileSync(exemplo('test-cases-exemplo.csv')));
+
+  // Importar de novo: agora acrescenta, com IDs novos
+  await page.locator('#arq-importar').setInputFiles(exemplo('test-cases-exemplo.csv'));
+  await expect(page.locator('.item .n')).toHaveText(['CT01', 'CT02', 'CT03', 'CT04', 'CT05', 'CT06']);
+  await expect(page.getByText('3 test cases adicionados (CT04 a CT06).')).toBeVisible();
+
+  // CSV invalido mostra o erro e nao mexe no caderno
+  await page.locator('#arq-importar').setInputFiles(exemplo('massa-exemplo.csv'));
+  await expect(page.getByRole('alert')).toContainText('nao e o do Azure Test Plans');
+  await page.getByRole('button', { name: 'Fechar' }).click();
+  await expect(page.locator('.item .n')).toHaveCount(6);
 });
 
 test('excluir caderno da lista pede confirmacao', async ({ page }) => {

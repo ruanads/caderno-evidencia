@@ -89,7 +89,8 @@ test('marcar status: passo com falha reprova o teste e entra no comentario', asy
 
 test('exportar CSV do Azure: sem edicao sai identico ao importado', async ({ page }) => {
   await gerarCaderno(page);
-  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar CSV do Azure' }).click()]);
+  await page.getByRole('button', { name: 'Exportar CSV do Azure' }).click();
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar CSV' }).click()]);
   expect(download.suggestedFilename()).toBe('test-cases_9001-cupom-de-desconto.csv');
   expect(readFileSync(await download.path())).toEqual(readFileSync(exemplo('test-cases-exemplo.csv')));
 });
@@ -107,7 +108,8 @@ test('editar: incluir passo e test case entram no CSV exportado', async ({ page 
   await page.getByRole('button', { name: '✔ Concluir edição' }).click();
 
   await expect(page.locator('.item .n')).toHaveText(['CT01', 'CT04', 'CT02', 'CT03']);
-  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar CSV do Azure' }).click()]);
+  await page.getByRole('button', { name: 'Exportar CSV do Azure' }).click();
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar CSV' }).click()]);
   const csv = readFileSync(await download.path(), 'utf8');
   expect(csv).toContain(',,,3,Remover o cupom.,O subtotal volta ao original.,,,\r\n');
   expect(csv).toContain(',Test Case,[Etapa 1] Cupom em maiusculas e minusculas,1,Aplicar bemvindo10.,Desconto aplicado.,Loja Exemplo\\Checkout,Pessoa QA,Design\r\n');

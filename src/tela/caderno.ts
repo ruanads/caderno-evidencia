@@ -4,7 +4,8 @@
 // print (Win+Shift+S), colar (Ctrl+V: cai no passo ativo), marcar ✔ ou ✖ no passo.
 // Marcar ✔ avanca para o proximo passo. Um passo com ✖ reprova o teste inteiro.
 
-import { tituloCurto } from '../importar/csv-azure.ts';
+import { importarCsvAzureSeguro, tituloCurto } from '../importar/csv-azure.ts';
+import { mesclarTestes, valorComum } from '../importar/mesclar.ts';
 import { rascunhoBug } from '../exportar/bug.ts';
 import { gerarComentario } from '../exportar/comentario.ts';
 import { exportarCsvAzure } from '../exportar/csv-azure.ts';
@@ -18,7 +19,7 @@ import * as db from '../armazenamento/db.ts';
 import { iniciarReteste, testesDoReteste, type EscopoReteste } from '../reteste.ts';
 import { abrirAnotacao } from './anotacao.ts';
 import { adicionarEvidencias, c, estado, evidenciasDo, removerEvidencia, salvar, testeAtivo, type Filtro } from './estado.ts';
-import { $, abrirModal, aviso, baixar, confirmarNoSegundoClique, copiarTexto, esc, fecharModal } from './util.ts';
+import { $, abrirModal, aviso, baixar, confirmarNoSegundoClique, copiarTexto, esc, fecharModal, lerArquivo } from './util.ts';
 
 const ROTULO: Record<StatusTeste, string> = { ok: 'Passou', bad: 'Falhou', skip: 'Não executado', '': 'A fazer' };
 const urls = new Map<string, string>();
@@ -51,7 +52,11 @@ export function mostrarCaderno(voltarParaInicio: () => void): void {
           <button data-filtro="todos">Todos</button><button data-filtro="falta">Falta fazer</button><button data-filtro="falhou">Falhou</button>
         </div>
         <div class="items" id="itens"></div>
-        <div class="rodape"><button class="btn ghost" data-acao="novo-teste">+ Novo test case</button></div>
+        <div class="rodape">
+          <button class="btn ghost" data-acao="novo-teste">+ Novo test case</button>
+          <label class="btn ghost" for="arq-importar">Importar CSV</label>
+          <input type="file" id="arq-importar" accept=".csv,text/csv" hidden>
+        </div>
       </aside>
       <main id="principal"></main>
     </div>
@@ -557,10 +562,7 @@ async function aoClicar(e: MouseEvent): Promise<void> {
     case 'associar': return modalAssociarMassa();
     case 'reteste': return modalReteste();
     case 'relatorio': return modalRelatorio();
-    case 'csv': {
-      baixar(exportarCsvAzure(cad), `test-cases_${slug(cad.tarefa, 60) || 'caderno'}.csv`, 'text/csv;charset=utf-8');
-      return aviso('CSV do Azure exportado.');
-    }
+    case 'csv': return modalExportarCsv();
     case 'zip': {
       aviso('Gerando o pacote...');
       baixar(await gerarPacote(cad, estado.evidencias), nomeDoPacote(cad.tarefa), 'application/zip');
@@ -613,6 +615,67 @@ function aoMudar(e: Event): void {
     void colarImagens([...alvo.files]);
     alvo.value = '';
   }
+  if (alvo.id === 'arq-importar' && alvo.files?.[0]) {
+    void importarCsvNoCaderno(alvo.files[0]);
+    alvo.value = '';
+  }
+}
+
+async function importarCsvNoCaderno(arquivo: File): Promise<void> {
+  const r = importarCsvAzureSeguro(await lerArquivo(arquivo));
+  if (!r.ok) {
+    abrirModal(`<div class="sheet" role="dialog" aria-label="Erro ao importar"><h3>Não deu para importar ${esc(arquivo.name)}</h3>
+      <div class="erro" role="alert">${esc(r.erro)}</div><div class="row"><button class="btn" data-fechar>Fechar</button></div></div>`);
+    return;
+  }
+  const cad = c();
+  const semPrints = !estado.evidencias.some((ev) => ev.testeId === cad.testes[0]?.id);
+  const m = mesclarTestes(cad, r.testes, r.formato, semPrints);
+  estado.editando = false;
+  salvar();
+  renderTudo();
+  aviso(m.substituiuEmBranco ? `${m.adicionados.length} test cases importados.` : `${m.adicionados.length} test cases adicionados (${m.adicionados[0]} a ${m.adicionados.at(-1)}).`);
+}
+
+// Antes de exportar, confirmar onde os test cases vao cair no Azure. Os dois
+// campos sao obrigatorios: sem CSV de origem eles nascem vazios.
+function modalExportarCsv(): void {
+  const cad = c();
+  const campo = (id: 'areaPath' | 'assignedTo', rotulo: string, exemplo: string) => {
+    const comum = valorComum(cad.testes, id);
+    const diferentes = [...new Set(cad.testes.map((t) => t.azure[id].trim()).filter(Boolean))];
+    return `<label class="lbl" for="exp-${id}">${rotulo}</label>
+      <input type="text" id="exp-${id}" value="${esc(comum ?? '')}" placeholder="${comum === null ? '(manter o de cada test case)' : exemplo}">
+      ${comum === null ? `<p class="aviso-local">Os test cases têm valores diferentes: ${diferentes.map(esc).join(' · ')}. Preencha para usar um só em todos, ou deixe vazio para manter.</p>` : ''}`;
+  };
+  const modal = abrirModal(`<div class="sheet" role="dialog" aria-label="Exportar CSV do Azure">
+    <h3>Exportar CSV do Azure</h3>
+    <p class="note">Confira onde os test cases vão cair no Azure Test Plans. Os dois campos são obrigatórios.</p>
+    ${campo('areaPath', 'Area Path', 'Ex.: Projetos\\DBCORP PCR')}
+    ${campo('assignedTo', 'Assigned To', 'Ex.: Nome Sobrenome')}
+    <div id="erro-exportar"></div>
+    <div class="row"><button class="btn" data-fechar>Cancelar</button><button class="btn primary" id="baixar-csv">Baixar CSV</button></div>
+  </div>`);
+  $<HTMLInputElement>('#exp-areaPath', modal)!.focus();
+
+  $('#baixar-csv', modal)!.addEventListener('click', () => {
+    const area = $<HTMLInputElement>('#exp-areaPath', modal)!.value.trim();
+    const responsavel = $<HTMLInputElement>('#exp-assignedTo', modal)!.value.trim();
+    const faltaArea = cad.testes.some((t) => !(area || t.azure.areaPath.trim()));
+    const faltaResp = cad.testes.some((t) => !(responsavel || t.azure.assignedTo.trim()));
+    if (faltaArea || faltaResp) {
+      $('#erro-exportar', modal)!.innerHTML = `<div class="erro" role="alert">Preencha ${[faltaArea && 'o Area Path', faltaResp && 'o Assigned To'].filter(Boolean).join(' e ')}.</div>`;
+      return;
+    }
+    cad.testes.forEach((t) => {
+      if (area) t.azure.areaPath = area;
+      if (responsavel) t.azure.assignedTo = responsavel;
+    });
+    salvar();
+    fecharModal();
+    baixar(exportarCsvAzure(cad), `test-cases_${slug(cad.tarefa, 60) || 'caderno'}.csv`, 'text/csv;charset=utf-8');
+    aviso('CSV do Azure exportado.');
+  });
 }
 
 // Colar e arrastar valem para a pagina inteira enquanto o caderno esta aberto.

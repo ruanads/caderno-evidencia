@@ -42,6 +42,8 @@ ferramenta. Aqui eles são só organizados, executados e exportados.
 2. Cole o **título da task**, escolha o **CSV de test cases** e, se tiver, o **arquivo de massa**.
    Sem CSV? Clique em **"Não tenho CSV: criar os test cases aqui"**: o caderno começa com
    um test case em branco, e o CSV exportado sai no formato de importação do Azure do mesmo jeito.
+   O CSV também pode chegar depois: **Importar CSV**, embaixo da lista, substitui o test case
+   em branco ou acrescenta os test cases no fim, com IDs novos.
 3. Para cada teste: clique no passo, tire o print (`Win+Shift+S`), cole (`Ctrl+V`) e marque ✔ ou ✖.
 4. Exporte: **Gerar comentário**, **Exportar CSV do Azure** e **Baixar evidências (.zip)**.
 5. Para retestar depois da correção: abra o caderno em **Meus cadernos** e clique em
@@ -79,6 +81,8 @@ Exemplos fictícios em [`exemplos/`](exemplos/).
 
 - **CSV para o Azure Test Plans**: o mesmo formato da entrada. Sem edição, o arquivo
   sai **idêntico byte a byte** ao importado. Com edição, entram os títulos e passos alterados.
+  Antes de baixar, o **Area Path** e o **Assigned To** são confirmados (obrigatórios): sem
+  CSV de origem eles nascem vazios, e um valor errado joga os test cases no lugar errado do Azure.
 - **Comentário da task**: aprovação ou reprovação, com os testes que falharam e os não executados.
 - **Relatório de execução** (`.html`, um arquivo só, com as imagens embutidas): veredito,
   números, gráfico por status e por grupo, evolução das rodadas de reteste, ambiente
