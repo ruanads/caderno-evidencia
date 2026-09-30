@@ -7,7 +7,7 @@
 // "fonte" decide como a imagem entra: caminho relativo (dentro do .zip) ou
 // data URL (arquivo unico para compartilhar).
 
-import { passoQueFalhou, statusEfetivo, type Caderno, type Evidencia, type StatusTeste, type TestCase } from '../modelo.ts';
+import { TIPOS, passoQueFalhou, statusEfetivo, type Caderno, type Evidencia, type StatusTeste, type TestCase } from '../modelo.ts';
 import { nomeEvidencia } from './nomes.ts';
 
 export type Veredito = 'aprovado' | 'reprovado' | 'andamento';
@@ -201,7 +201,7 @@ function detalhe(t: TestCase, c: Caderno, evs: Evidencia[], fonte: (ev: Evidenci
   const massa = c.massa.filter((m) => m.testeId === t.id);
   const ordenadas = [...evs].sort((a, b) => a.rodada - b.rodada || a.passo - b.passo || a.seq - b.seq);
   return `<details class="teste s-${st || 'nenhum'}" id="${t.id}" data-s="${st || 'nenhum'}" ${st === 'bad' ? 'open' : ''}>
-  <summary><span class="dot" style="background:${COR[st]}"></span><span class="id">${t.id}</span><span class="tt">${esc(t.titulo)}</span>
+  <summary><span class="dot" style="background:${COR[st]}"></span><span class="id">${t.id}</span><span class="tt">${esc(t.titulo)}</span>${t.tipo ? `<span class="tipo t-${t.tipo}">${TIPOS[t.tipo]}</span>` : ''}
     <span class="st">${ROTULO[st]}${falhou ? ` · passo ${falhou}` : ''}${t.bug?.trim() ? ` · bug #${esc(t.bug.trim().replace(/^#/, ''))}${st === 'ok' ? ' corrigido' : ''}` : ''}</span>${evs.length ? `<span class="cam">${evs.length} 📷</span>` : ''}</summary>
   <div class="corpo">
     ${t.passos.length ? `<table class="tab passos"><tr><th>#</th><th>Ação</th><th>Resultado esperado</th><th></th></tr>
@@ -304,6 +304,9 @@ summary .id{font:600 12px ui-monospace,Consolas,monospace;color:#5e6b78}
 summary .tt{flex:1;font-weight:600;min-width:0}
 summary .st{font-size:13px;color:#5e6b78;white-space:nowrap}
 summary .cam{font-size:12px;color:#5e6b78}
+.tipo{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-radius:5px;padding:2px 7px;white-space:nowrap}
+.t-funcionar{background:#dff3e7;color:#1e7a46}.t-bloquear{background:#fbe4e1;color:#c0392b}.t-mensagem{background:#fcf0d6;color:#9a6200}
+.t-erro{background:#efe7fa;color:#6b3fa0}.t-preparacao{background:#ebeff3;color:#1d5c8c}
 .corpo{padding:0 14px 14px}
 .passos .p-bad td{background:#fdf1ef}
 .prints{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:8px}

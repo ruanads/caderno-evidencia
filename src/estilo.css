@@ -5,6 +5,7 @@
   --bg: #f3f5f7; --panel: #ffffff; --ink: #16212b; --muted: #5e6b78; --line: #dce2e8; --soft: #ebeff3;
   --accent: #1d5c8c; --accent-soft: #e3eef7;
   --ok: #1e7a46; --ok-soft: #dff3e7; --bad: #b42318; --bad-soft: #fbe4e1; --warn: #9a6200; --warn-soft: #fcf0d6;
+  --tipo-erro: #6b3fa0; --tipo-erro-soft: #efe7fa;
   --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
   color-scheme: light;
@@ -14,6 +15,7 @@
     --bg: #10161c; --panel: #18212a; --ink: #e6ecf1; --muted: #98a6b3; --line: #2a3642; --soft: #1f2a34;
     --accent: #6fb0e2; --accent-soft: #1b3347;
     --ok: #5ccb8a; --ok-soft: #173526; --bad: #f2877c; --bad-soft: #3e1d1a; --warn: #e9b45a; --warn-soft: #3a2d12;
+    --tipo-erro: #c3a4ee; --tipo-erro-soft: #2c2140;
     color-scheme: dark;
   }
 }
@@ -171,6 +173,15 @@ input[type=text], select { border: 1px solid var(--line); border-radius: 8px; pa
 .sheet .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .sheet table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .sheet td, .sheet th { padding: 6px; border-bottom: 1px solid var(--line); text-align: left; }
+/* Tipo do teste: cor com significado, igual ao selo do prototipo */
+select.tipo { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 6px; padding: 4px 8px; border: 1px solid var(--line); cursor: pointer; }
+select.tipo option { text-transform: none; font-weight: 400; letter-spacing: 0; background: var(--panel); color: var(--ink); }
+select.tipo.t-nenhum { color: var(--muted); font-weight: 600; }
+select.tipo.t-funcionar { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+select.tipo.t-bloquear { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+select.tipo.t-mensagem { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+select.tipo.t-erro { background: var(--tipo-erro-soft); color: var(--tipo-erro); border-color: transparent; }
+select.tipo.t-preparacao { background: var(--soft); color: var(--accent); border-color: transparent; }
 .campo-bug { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .campo-bug input { width: 140px; }
 .form-exec { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }

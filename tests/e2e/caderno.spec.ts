@@ -115,6 +115,27 @@ test('editar: incluir passo e test case entram no CSV exportado', async ({ page 
   expect(csv).toContain(',Test Case,[Etapa 1] Cupom em maiusculas e minusculas,1,Aplicar bemvindo10.,Desconto aplicado.,Loja Exemplo\\Checkout,Pessoa QA,Design\r\n');
 });
 
+test('tipo do teste: escolher, guardar e aparecer no relatorio', async ({ page }) => {
+  await gerarCaderno(page);
+  const tipo = page.getByLabel('Tipo do teste');
+  await tipo.selectOption('mensagem');
+  await expect(tipo).toHaveClass(/t-mensagem/);
+
+  await page.getByRole('button', { name: 'Próximo teste →' }).click();
+  await expect(page.getByLabel('Tipo do teste')).toHaveValue(''); // cada teste tem o seu
+  await page.getByRole('button', { name: '← Anterior' }).click();
+  await expect(page.getByLabel('Tipo do teste')).toHaveValue('mensagem');
+
+  await page.waitForTimeout(400); // gravacao com atraso
+  await page.reload();
+  await page.getByRole('button', { name: 'Abrir' }).click();
+  await expect(page.getByLabel('Tipo do teste')).toHaveValue('mensagem');
+
+  await page.getByRole('button', { name: 'Relatório', exact: true }).click();
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar relatório (.html)' }).click()]);
+  expect(readFileSync(await download.path(), 'utf8')).toContain('<span class="tipo t-mensagem">Deve dar mensagem</span>');
+});
+
 test('excluir test case pede confirmacao e apaga os prints dele', async ({ page }) => {
   await gerarCaderno(page);
   await colarPrint(page);

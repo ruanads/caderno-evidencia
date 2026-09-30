@@ -12,7 +12,7 @@ import { exportarCsvAzure } from '../exportar/csv-azure.ts';
 import { nomeEvidencia, slug } from '../exportar/nomes.ts';
 import { gerarPacote, gerarRelatorioUnico, nomeDoPacote, nomeDoRelatorio } from '../exportar/pacote.ts';
 import {
-  EXECUCAO_VAZIA, passoQueFalhou, statusEfetivo, testeEmBranco,
+  EXECUCAO_VAZIA, TIPOS, passoQueFalhou, statusEfetivo, testeEmBranco, type TipoTeste,
   type DadosExecucao, type Evidencia, type NivelRisco, type Risco, type StatusTeste, type TestCase,
 } from '../modelo.ts';
 import * as db from '../armazenamento/db.ts';
@@ -142,7 +142,13 @@ function renderCard(): void {
         ${ed ? `<input type="text" data-edit="titulo" value="${esc(t.titulo)}" aria-label="Título do test case" placeholder="[Etapa 1] O que este teste valida" style="width:100%;font-size:17px;font-weight:600">`
              : `<h2>${esc(t.titulo)}</h2>`}
       </div>
-      <span class="selo chip c-${st || 'todo'}">${ROTULO[st]}</span>
+      <div class="status">
+        <select class="tipo t-${t.tipo || 'nenhum'}" data-tipo aria-label="Tipo do teste">
+          <option value="">Tipo do teste…</option>
+          ${Object.entries(TIPOS).map(([k, v]) => `<option value="${k}" ${t.tipo === k ? 'selected' : ''}>${v}</option>`).join('')}
+        </select>
+        <span class="selo chip c-${st || 'todo'}">${ROTULO[st]}</span>
+      </div>
     </div>
 
     ${t.historico?.length ? `<div class="historico"><span class="lbl">Rodadas anteriores</span>
@@ -614,6 +620,12 @@ function aoMudar(e: Event): void {
   if (alvo.id === 'arq-print' && alvo.files) {
     void colarImagens([...alvo.files]);
     alvo.value = '';
+  }
+  if (alvo.dataset.tipo !== undefined) {
+    testeAtivo().tipo = alvo.value as TipoTeste;
+    salvar();
+    alvo.className = `tipo t-${alvo.value || 'nenhum'}`;
+    return;
   }
   if (alvo.id === 'arq-importar' && alvo.files?.[0]) {
     void importarCsvNoCaderno(alvo.files[0]);

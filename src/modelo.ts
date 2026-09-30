@@ -2,6 +2,17 @@
 // exceto o Blob das evidencias, que o IndexedDB tambem guarda nativamente.
 
 export type StatusTeste = '' | 'ok' | 'bad' | 'skip';
+
+// O que o teste espera que aconteca. So um rotulo com cor, escolhido na tela;
+// nao vai para o CSV (o Azure nao tem esse campo).
+export type TipoTeste = '' | 'funcionar' | 'bloquear' | 'mensagem' | 'erro' | 'preparacao';
+export const TIPOS: Record<Exclude<TipoTeste, ''>, string> = {
+  funcionar: 'Deve funcionar',
+  bloquear: 'Deve bloquear',
+  mensagem: 'Deve dar mensagem',
+  erro: 'Deve dar erro',
+  preparacao: 'Preparação',
+};
 export type StatusPasso = '' | 'ok' | 'bad';
 
 export type Passo = {
@@ -37,6 +48,7 @@ export type TestCase = {
   linhasOriginais: string[][]; // linhas do CSV importado, para exportar sem perder colunas
   historico?: ResultadoRodada[]; // rodadas anteriores (reteste)
   bug?: string;          // numero do bug aberto quando o teste falhou (ex.: 22501)
+  tipo?: TipoTeste;
 };
 
 // Dados da execucao para o relatorio. Todos opcionais: o que ficar vazio nao aparece.
