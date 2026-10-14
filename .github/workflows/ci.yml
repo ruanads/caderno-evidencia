@@ -1,0 +1,51 @@
+# Roda typecheck, testes unitarios e e2e (Playwright) a cada push e pull request.
+# No main, publica o build (um unico index.html) no GitHub Pages como demo.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Instalar o Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+
+      # typecheck + node:test + build + Playwright (o mesmo "npm test" de quem roda local)
+      - run: npm test
+
+      - name: Guardar o build para a demo
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  demo:
+    if: github.ref == 'refs/heads/main'
+    needs: testes
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

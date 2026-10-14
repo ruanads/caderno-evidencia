@@ -1,5 +1,12 @@
 # Caderno de Evidências
 
+[![CI](https://github.com/ruanads/caderno-evidencia/actions/workflows/ci.yml/badge.svg)](https://github.com/ruanads/caderno-evidencia/actions/workflows/ci.yml)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Playwright](https://img.shields.io/badge/e2e-Playwright-2EAD33?logo=playwright&logoColor=white)
+
+**[▶ Abrir a demo](https://ruanads.github.io/caderno-evidencia/)**: roda direto no navegador, sem instalar nada.
+Para testar, use os arquivos de [`exemplos/`](exemplos/).
+
 Ferramenta para QA executar test cases do **Azure Test Plans** e coletar evidências
 sem sair do navegador: importa os casos de teste, recebe os prints colados com
 `Ctrl+V` direto no passo que está sendo executado e exporta tudo pronto para o Azure.
